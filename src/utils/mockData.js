@@ -27,3 +27,107 @@ export const mockTachesCuisine = [
   { id: 5, date: '2025-05-15', creneau: 'Matin', responsable: 5, tache: 'Préparation petit-déjeuner' },
   { id: 6, date: '2025-05-15', creneau: 'Soir', responsable: 6, tache: 'Nettoyage cuisine' },
 ];
+
+export const mockKitchenTasks = [
+  {
+    id: '1',
+    type: 'nettoyage',
+    description: 'Nettoyer le sol de la cuisine',
+    date: '2025-05-12',
+    timeSlot: '10:00 - 12:00',
+    assignedTo: '101',
+    assignedToName: 'Thomas Martin',
+    status: 'en attente'
+  },
+  {
+    id: '2',
+    type: 'préparation',
+    description: 'Préparer les légumes pour le dîner',
+    date: '2025-05-12',
+    timeSlot: '16:00 - 18:00',
+    assignedTo: '102',
+    assignedToName: 'Emma Bernard',
+    status: 'en attente'
+  },
+  {
+    id: '3',
+    type: 'service',
+    description: 'Servir le dîner',
+    date: '2025-05-12',
+    timeSlot: '18:00 - 20:00',
+    assignedTo: '103',
+    assignedToName: 'Lucas Dubois',
+    status: 'en attente'
+  },
+  {
+    id: '4',
+    type: 'vaisselle',
+    description: 'Faire la vaisselle du dîner',
+    date: '2025-05-12',
+    timeSlot: '20:00 - 22:00',
+    assignedTo: '104',
+    assignedToName: 'Sofia Petit',
+    status: 'en attente'
+  },
+  {
+    id: '5',
+    type: 'nettoyage',
+    description: 'Nettoyer les réfrigérateurs',
+    date: '2025-05-13',
+    timeSlot: '14:00 - 16:00',
+    assignedTo: '',
+    assignedToName: '',
+    status: 'en attente'
+  },
+  {
+    id: '6',
+    type: 'rangement',
+    description: 'Ranger les provisions reçues',
+    date: '2025-05-13',
+    timeSlot: '10:00 - 12:00',
+    assignedTo: '105',
+    assignedToName: 'Léo Richard',
+    status: 'en attente'
+  },
+  {
+    id: '7',
+    type: 'préparation',
+    description: 'Préparer les entrées du déjeuner',
+    date: '2025-05-14',
+    timeSlot: '08:00 - 10:00',
+    assignedTo: '106',
+    assignedToName: 'Camille Robert',
+    status: 'en attente'
+  },
+  {
+    id: '8',
+    type: 'nettoyage',
+    description: 'Nettoyer les plans de travail',
+    date: '2025-05-14',
+    timeSlot: '12:00 - 14:00',
+    assignedTo: '107',
+    assignedToName: 'Noah Simon',
+    status: 'en attente'
+  },
+  {
+    id: '9',
+    type: 'service',
+    description: 'Servir le petit déjeuner',
+    date: '2025-05-15',
+    timeSlot: '08:00 - 10:00',
+    assignedTo: '108',
+    assignedToName: 'Jade Leroy',
+    status: 'en attente'
+  },
+  {
+    id: '10',
+    type: 'vaisselle',
+    description: 'Faire la vaisselle du petit déjeuner',
+    date: '2025-05-15',
+    timeSlot: '10:00 - 12:00',
+    assignedTo: '',
+    assignedToName: '',
+    status: 'en attente'
+  },
+  // Add more tasks as needed
+];

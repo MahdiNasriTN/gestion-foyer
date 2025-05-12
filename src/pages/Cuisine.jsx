@@ -1,179 +1,118 @@
-import React, { useState } from 'react';
-import { mockTachesCuisine, mockEtudiants, mockStagiaires } from '../utils/mockData';
-import { PlusIcon, PencilAltIcon, TrashIcon, CalendarIcon } from '@heroicons/react/outline';
+import React, { useState, useEffect } from 'react';
+import KitchenDashboard from '../components/cuisine/KitchenDashboard';
+import KitchenTaskModal from '../components/cuisine/KitchenTaskModal';
+import { mockKitchenTasks } from '../utils/mockData';
 
 const Cuisine = () => {
-  const [taches, setTaches] = useState(mockTachesCuisine);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [currentTache, setCurrentTache] = useState(null);
-  const [currentView, setCurrentView] = useState('liste'); // 'liste' ou 'planning'
-
-  const creneaux = ['Matin', 'Soir'];
-  const jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-
-  const handleOpenModal = (tache = null) => {
-    setCurrentTache(tache || { 
-      date: new Date().toISOString().split('T')[0], 
-      creneau: 'Matin', 
-      responsable: '', 
-      tache: 'Préparation petit-déjeuner' 
-    });
-    setModalOpen(true);
+  const [tasks, setTasks] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentTask, setCurrentTask] = useState(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  
+  useEffect(() => {
+    // In a real app, fetch tasks from API
+    setTasks(mockKitchenTasks || []);
+  }, []);
+  
+  const handleOpenModal = (task = null) => {
+    setCurrentTask(task);
+    setIsModalOpen(true);
   };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
-      setTaches(taches.filter(tache => tache.id !== id));
+  
+  const handleSaveTask = (task) => {
+    if (task && task.id) {
+      // Update existing task
+      setTasks(tasks.map(t => t.id === task.id ? task : t));
+    } else if (task) {
+      // Create new task
+      const newTask = {
+        ...task,
+        id: Date.now().toString()
+      };
+      setTasks([...tasks, newTask]);
     }
   };
-
-  const getResponsableName = (id) => {
-    const etudiant = mockEtudiants.find(e => e.id === id);
-    const stagiaire = mockStagiaires.find(s => s.id === id);
-    return etudiant ? etudiant.nom : (stagiaire ? stagiaire.nom : 'Non assigné');
+  
+  const handleOpenDeleteConfirm = (taskId) => {
+    setTaskToDelete(taskId);
+    setIsDeleteConfirmOpen(true);
   };
-
-  const getPersonnes = () => {
-    return [...mockEtudiants, ...mockStagiaires].map(p => ({
-      id: p.id,
-      nom: p.nom
-    }));
-  };
-
-  // Organiser les tâches par jour de la semaine pour le planning
-  const getTachesByJour = () => {
-    const currentDate = new Date();
-    const tachesByDay = {};
-    
-    // Initialiser la structure avec les 7 prochains jours
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(currentDate);
-      date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      tachesByDay[dateStr] = { date: dateStr, jour: jours[date.getDay()], taches: [] };
+  
+  const handleDeleteTask = () => {
+    if (taskToDelete) {
+      setTasks(tasks.filter(task => task.id !== taskToDelete));
+      setIsDeleteConfirmOpen(false);
+      setTaskToDelete(null);
     }
-    
-    // Remplir avec les tâches existantes
-    taches.forEach(tache => {
-      if (tachesByDay[tache.date]) {
-        tachesByDay[tache.date].taches.push(tache);
-      }
-    });
-    
-    return Object.values(tachesByDay);
   };
-
+  
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Gestion de la Cuisine</h1>
-        <div className="space-x-3">
-          <button 
-            onClick={() => setCurrentView('planning')}
-            className={`btn ${currentView === 'planning' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            <CalendarIcon className="h-5 w-5 mr-1 inline" />
-            Planning
-          </button>
-          <button 
-            onClick={() => setCurrentView('liste')}
-            className={`btn ${currentView === 'liste' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Liste
-          </button>
-          <button 
-            onClick={() => handleOpenModal()} 
-            className="btn btn-primary flex items-center inline-flex"
-          >
-            <PlusIcon className="h-5 w-5 mr-1" />
-            Ajouter une Tâche
-          </button>
-        </div>
-      </div>
-
-      {currentView === 'liste' ? (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Créneau
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Responsable
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tâche
-                </th>
-                <th className="py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {taches.map((tache) => (
-                <tr key={tache.id}>
-                  <td className="py-3 px-4 text-sm">{new Date(tache.date).toLocaleDateString('fr-FR')}</td>
-                  <td className="py-3 px-4 text-sm">{tache.creneau}</td>
-                  <td className="py-3 px-4 text-sm">{getResponsableName(tache.responsable)}</td>
-                  <td className="py-3 px-4 text-sm">{tache.tache}</td>
-                  <td className="py-3 px-4 text-right space-x-2">
-                    <button 
-                      onClick={() => handleOpenModal(tache)} 
-                      className="text-green-600 hover:text-green-800"
-                      title="Modifier"
-                    >
-                      <PencilAltIcon className="h-5 w-5" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(tache.id)} 
-                      className="text-red-600 hover:text-red-800"
-                      title="Supprimer"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-          {getTachesByJour().map((jourData) => (
-            <div key={jourData.date} className="bg-white rounded-lg shadow-md p-4">
-              <h3 className="text-center font-semibold mb-2">{jourData.jour}</h3>
-              <p className="text-center text-sm text-gray-500 mb-3">
-                {new Date(jourData.date).toLocaleDateString('fr-FR')}
-              </p>
-              <div className="space-y-2">
-                {jourData.taches.length > 0 ? (
-                  jourData.taches.map((tache) => (
-                    <div key={tache.id} className="border border-gray-200 rounded p-2 text-sm">
-                      <p className="font-semibold">{tache.creneau}</p>
-                      <p>{tache.tache}</p>
-                      <p className="text-gray-600">{getResponsableName(tache.responsable)}</p>
+    <div className="px-4 sm:px-6 md:px-8 py-8">
+      <h1 className="text-2xl font-semibold text-gray-900 mb-8">Gestion de la Cuisine</h1>
+      
+      <KitchenDashboard 
+        tasks={tasks} 
+        onAddTask={() => handleOpenModal()} 
+        onEditTask={handleOpenModal}
+        onDeleteTask={handleOpenDeleteConfirm}
+      />
+      
+      <KitchenTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveTask}
+        task={currentTask}
+      />
+      
+      {/* Delete confirmation dialog */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+            {/* Background overlay */}
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setIsDeleteConfirmOpen(false)}></div>
+            
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                      Supprimer cette tâche
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.
+                      </p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-center text-sm text-gray-500 py-2">Aucune tâche</p>
-                )}
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button 
-                  onClick={() => handleOpenModal({ date: jourData.date, creneau: 'Matin', responsable: '', tache: '' })} 
-                  className="w-full text-center text-primary text-sm py-1 hover:bg-gray-100 rounded"
+                  type="button" 
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={handleDeleteTask}
                 >
-                  + Ajouter
+                  Supprimer
+                </button>
+                <button 
+                  type="button" 
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setIsDeleteConfirmOpen(false)}
+                >
+                  Annuler
                 </button>
               </div>
             </div>
-          ))}
+          </div>
         </div>
       )}
-
-      {/* Modal would be implemented here */}
     </div>
   );
 };
