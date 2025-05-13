@@ -24,7 +24,7 @@ import {
   ChartPieIcon as ChartPieIconSolid
 } from '@heroicons/react/solid';
 
-const Sidebar = ({ onLogout }) => {
+const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   
@@ -115,7 +115,6 @@ const Sidebar = ({ onLogout }) => {
   ];
   
   const secondaryNavItems = [
-    
   ];
 
   return (
@@ -169,7 +168,7 @@ const Sidebar = ({ onLogout }) => {
             {/* Title section */}
             <div>
               <h1 className="text-lg font-bold tracking-wide text-white">
-                Foyer<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">Manager</span>
+                Gestion De Foyer<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400"></span>
               </h1>
               <div className="text-xs text-blue-200/80">
                 Panneau administrateur
@@ -325,12 +324,6 @@ const Sidebar = ({ onLogout }) => {
         </div>
       </div>
       
-      {/* Version indicator - only in expanded mode */}
-      {!collapsed && (
-        <div className="px-4 py-2 text-center">
-          <div className="text-blue-300/40 text-xs">Foyer Manager v2.1.0</div>
-        </div>
-      )}
       
       {/* Custom styles */}
       <style jsx>{`
