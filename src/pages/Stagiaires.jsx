@@ -7,24 +7,28 @@ import StagiaireProfile from '../components/stagiaires/StagiaireProfile';
 import StagiaireStats from '../components/stagiaires/StagiaireStats';
 import StagiaireHeader from '../components/stagiaires/StagiaireHeader';
 import StagiaireModal from '../components/stagiaires/StagiaireModal';
+import AddIntern from '../components/stagiaires/AddIntern';
+import AddExternIntern from '../components/stagiaires/AddExternIntern';
 
 const Stagiaires = () => {
   const [stagiaires, setStagiaires] = useState(mockStagiaires);
   const [filteredStagiaires, setFilteredStagiaires] = useState(mockStagiaires);
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('add'); // 'add', 'edit' ou 'delete'
+  const [modalType, setModalType] = useState('add');
   const [currentStagiaire, setCurrentStagiaire] = useState(null);
   const [viewProfileId, setViewProfileId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('nom');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [viewMode, setViewMode] = useState('list'); // 'list' ou 'grid'
+  const [viewMode, setViewMode] = useState('list');
   const [animation, setAnimation] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [chambresDisponibles, setChambresDisponibles] = useState([]);
+  const [isAddingIntern, setIsAddingIntern] = useState(false);
+  const [isAddingExtern, setIsAddingExtern] = useState(false);
 
   // Préparation des chambres disponibles
   useEffect(() => {
@@ -212,15 +216,227 @@ const Stagiaires = () => {
     }
   };
 
+  // Fonction pour gérer l'ajout d'un stagiaire interne
+  const handleAddIntern = () => {
+    setIsAddingIntern(true);
+    setIsAddingExtern(false);
+  };
+
+  // Fonction pour gérer l'ajout d'un stagiaire externe
+  const handleAddExtern = () => {
+    setIsAddingExtern(true);
+    setIsAddingIntern(false);
+  };
+  
+  // Fonction pour annuler l'ajout d'un stagiaire
+  const handleCancelAdd = () => {
+    setIsAddingIntern(false);
+    setIsAddingExtern(false);
+    setCurrentStagiaire(null); // Réinitialiser le stagiaire en cours d'édition
+  };
+  
+  // Fonction pour sauvegarder un nouveau stagiaire interne
+  const handleSaveIntern = (formData) => {
+    if (currentStagiaire) {
+      // Mode édition : mettre à jour un stagiaire existant
+      const updatedStagiaire = {
+        ...currentStagiaire,
+        ...formData,
+        nom: `${formData.firstName} ${formData.lastName}`,
+        type: 'interne'
+      };
+      
+      setStagiaires(prev => prev.map(s => 
+        s.id === currentStagiaire.id ? updatedStagiaire : s
+      ));
+    } else {
+      // Mode ajout : créer un nouveau stagiaire
+      const newId = Math.max(...stagiaires.map(s => s.id), 0) + 1;
+      const newStagiaire = { 
+        ...formData, 
+        id: newId, 
+        type: 'interne',
+        nom: `${formData.firstName} ${formData.lastName}`
+      };
+      setStagiaires([...stagiaires, newStagiaire]);
+    }
+    
+    // Réinitialiser les états
+    setIsAddingIntern(false);
+    setCurrentStagiaire(null);
+  };
+
+  // Fonction pour sauvegarder un nouveau stagiaire externe
+  const handleSaveExtern = (formData) => {
+    if (currentStagiaire) {
+      // Mode édition : mettre à jour un stagiaire existant
+      const updatedStagiaire = {
+        ...currentStagiaire,
+        ...formData,
+        nom: `${formData.firstName} ${formData.lastName}`,
+        type: 'externe'
+      };
+      
+      setStagiaires(prev => prev.map(s => 
+        s.id === currentStagiaire.id ? updatedStagiaire : s
+      ));
+    } else {
+      // Mode ajout : créer un nouveau stagiaire
+      const newId = Math.max(...stagiaires.map(s => s.id), 0) + 1;
+      const newStagiaire = { 
+        ...formData, 
+        id: newId, 
+        type: 'externe',
+        nom: `${formData.firstName} ${formData.lastName}`
+      };
+      setStagiaires([...stagiaires, newStagiaire]);
+    }
+    
+    // Réinitialiser les états
+    setIsAddingExtern(false);
+    setCurrentStagiaire(null);
+  };
+
+  // Ajoutez ces fonctions dans votre composant Stagiaires
+  const handleAddExternIntern = (externData) => {
+    // Créer un nouvel objet stagiaire externe avec les données du formulaire
+    const newStagiaire = {
+      id: Math.max(0, ...stagiaires.map(s => s.id)) + 1, // Générer un nouvel ID
+      nom: `${externData.firstName} ${externData.lastName}`,
+      firstName: externData.firstName,
+      lastName: externData.lastName,
+      chambre: null, // Généralement pas de chambre assignée immédiatement
+      telephone: externData.phoneNumber || '',
+      email: externData.email || `${externData.firstName.toLowerCase()}.${externData.lastName.toLowerCase()}@example.com`,
+      dateArrivee: externData.trainingPeriodFrom,
+      dateDepart: externData.trainingPeriodTo,
+      entreprise: externData.assignedCenter,
+      type: 'externe', // Marquer comme stagiaire externe
+      avatar: externData.profilePhoto,
+      cinNumber: externData.cinNumber,
+      dateOfBirth: externData.dateOfBirth,
+      placeOfBirth: externData.placeOfBirth,
+      assignedCenter: externData.assignedCenter,
+      specialization: externData.specialization,
+      groupNumber: externData.groupNumber,
+      trainingPeriodFrom: externData.trainingPeriodFrom,
+      trainingPeriodTo: externData.trainingPeriodTo
+    };
+
+    // Ajouter le nouveau stagiaire externe à la liste
+    setStagiaires(prevStagiaires => [...prevStagiaires, newStagiaire]);
+    setModalOpen(false);
+    
+
+  };
+
+  const handleUpdateStagiaire = (updatedData) => {
+    // Vérifier si c'est un stagiaire interne ou externe
+    const isIntern = currentStagiaire.type === 'interne';
+    
+    // Mettre à jour le stagiaire avec les nouvelles données
+    const updatedStagiaire = {
+      ...currentStagiaire,
+      nom: `${updatedData.firstName} ${updatedData.lastName}`,
+      firstName: updatedData.firstName,
+      lastName: updatedData.lastName,
+      email: updatedData.email || currentStagiaire.email,
+      telephone: updatedData.phoneNumber || updatedData.fatherPhone || currentStagiaire.telephone,
+      dateArrivee: updatedData.trainingPeriodFrom,
+      dateDepart: updatedData.trainingPeriodTo,
+      avatar: updatedData.profilePhoto,
+      // Données communes pour les deux types
+      cinNumber: updatedData.cinNumber,
+      dateOfBirth: updatedData.dateOfBirth,
+      placeOfBirth: updatedData.placeOfBirth,
+      specialization: updatedData.specialization,
+      
+      // Si c'est un stagiaire interne, mettre à jour les champs spécifiques
+      ...(isIntern ? {
+        nationality: updatedData.nationality,
+        currentSituation: updatedData.currentSituation,
+        cinPlace: updatedData.cinPlace,
+        cinDate: updatedData.cinDate,
+        phoneNumber: updatedData.phoneNumber,
+        sendingAddress: updatedData.sendingAddress,
+        city: updatedData.city,
+        postalCode: updatedData.postalCode,
+        centerName: updatedData.centerName,
+        cycle: updatedData.cycle,
+        fatherFirstName: updatedData.fatherFirstName,
+        fatherLastName: updatedData.fatherLastName,
+        fatherPhone: updatedData.fatherPhone,
+        fatherJob: updatedData.fatherJob,
+        fatherJobPlace: updatedData.fatherJobPlace,
+        motherFirstName: updatedData.motherFirstName,
+        motherLastName: updatedData.motherLastName,
+        motherPhone: updatedData.motherPhone,
+        motherJob: updatedData.motherJob,
+        motherJobPlace: updatedData.motherJobPlace,
+        numberOfBrothers: updatedData.numberOfBrothers,
+        numberOfSisters: updatedData.numberOfSisters,
+        hobby: updatedData.hobby,
+        entreprise: updatedData.centerName,
+      } : {
+        // Si c'est un stagiaire externe, mettre à jour les champs spécifiques
+        assignedCenter: updatedData.assignedCenter,
+        groupNumber: updatedData.groupNumber,
+        entreprise: updatedData.assignedCenter,
+      }),
+    };
+
+    // Mettre à jour la liste des stagiaires
+    setStagiaires(prevStagiaires => 
+      prevStagiaires.map(stagiaire => 
+        stagiaire.id === currentStagiaire.id ? updatedStagiaire : stagiaire
+      )
+    );
+    
+    setModalOpen(false);
+    
+  };
+
+  // Modifiez la fonction handleEdit pour qu'elle affecte l'état d'affichage directement
+  const handleEdit = (stagiaire) => {
+    setCurrentStagiaire(stagiaire);
+    
+    // Si c'est un stagiaire externe, afficher AddExternIntern, sinon AddIntern
+    if (stagiaire.type === 'externe') {
+      setIsAddingExtern(true);
+      setIsAddingIntern(false);
+    } else {
+      setIsAddingIntern(true);
+      setIsAddingExtern(false);
+    }
+    
+    // Désactiver l'affichage du profil si actif
+    setViewProfileId(null);
+  };
+
   return (
     <div className="space-y-6">
-      {viewProfileId ? (
+      {isAddingIntern && !viewProfileId ? (
+        <AddIntern 
+          onCancel={handleCancelAdd}
+          onSave={handleSaveIntern}
+          initialData={currentStagiaire} // Passer les données existantes pour l'édition
+          isEditing={currentStagiaire !== null} // Indiquer si c'est une édition
+        />
+      ) : isAddingExtern && !viewProfileId ? (
+        <AddExternIntern
+          onCancel={handleCancelAdd}
+          onSave={handleSaveExtern}
+          initialData={currentStagiaire} // Passer les données existantes pour l'édition
+          isEditing={currentStagiaire !== null} // Indiquer si c'est une édition
+        />
+      ) : viewProfileId ? (
+        // Affichage du profil reste inchangé
         <StagiaireProfile
           stagiaire={getStagiaireById(viewProfileId)}
           chambre={getChambreInfo(getStagiaireById(viewProfileId).chambre)}
           animation={animation}
           onBack={() => setViewProfileId(null)}
-          onEdit={() => handleOpenEditModal(getStagiaireById(viewProfileId))}
+          onEdit={() => handleEdit(getStagiaireById(viewProfileId))} // Utilisation de handleEdit ici aussi
           onDelete={() => handleOpenDeleteModal(viewProfileId)}
         />
       ) : (
@@ -232,7 +448,8 @@ const Stagiaires = () => {
             isStatsOpen={isStatsOpen}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            onAddNew={handleOpenAddModal}
+            onAddNew={handleAddIntern}
+            onAddExtern={handleAddExtern}
             totalCount={stagiaires.length}
           />
 
@@ -249,7 +466,7 @@ const Stagiaires = () => {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onView={handleViewProfile}
-            onEdit={handleOpenEditModal}
+            onEdit={handleEdit} // <-- CORRECTION ICI
             onDelete={handleOpenDeleteModal}
             onSort={toggleSort}
             onChangePage={setCurrentPage}
@@ -261,14 +478,14 @@ const Stagiaires = () => {
       )}
 
       {/* Modal pour ajouter, modifier ou supprimer un stagiaire */}
-      <StagiaireModal
-        isOpen={modalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSaveStagiaire}
-        stagiaire={currentStagiaire}
-        chambres={chambresDisponibles}
-        modalType={modalType}
-      />
+      {modalOpen && modalType === 'delete' && (
+        <StagiaireModal
+          onClose={() => setModalOpen(false)}
+          title="Supprimer un stagiaire"
+        >
+          {/* Contenu pour la suppression */}
+        </StagiaireModal>
+      )}
     </div>
   );
 };

@@ -12,7 +12,11 @@ import {
   ShieldCheckIcon,
   LogoutIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ClipboardListIcon,
+  DocumentTextIcon,
+  BriefcaseIcon,
+  UserIcon
 } from '@heroicons/react/outline';
 
 import { 
@@ -21,7 +25,11 @@ import {
   OfficeBuildingIcon as OfficeBuildingIconSolid,
   UserGroupIcon as UserGroupIconSolid,
   CakeIcon as CakeIconSolid,
-  ChartPieIcon as ChartPieIconSolid
+  ChartPieIcon as ChartPieIconSolid,
+  ClipboardListIcon as ClipboardListIconSolid,
+  DocumentTextIcon as DocumentTextIconSolid,
+  BriefcaseIcon as BriefcaseIconSolid,
+  UserIcon as UserIconSolid
 } from '@heroicons/react/solid';
 
 const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
@@ -60,11 +68,6 @@ const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
     [currentDate]
   );
   
-  // Notifications count
-  const notificationCount = 3;
-  const messageCount = 2;
-  const totalAlerts = notificationCount + messageCount;
-  
   // Navigation items with solid icons for active state
   const mainNavItems = [
     { 
@@ -74,47 +77,92 @@ const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
       activeIcon: <HomeIconSolid className="h-5 w-5" />,
       badge: null,
       description: 'Vue d\'ensemble et statistiques',
-      color: 'from-sky-500 to-blue-600'
-    },
-    { 
-      name: 'Chambres', 
-      path: '/chambres', 
-      icon: <OfficeBuildingIcon className="h-5 w-5" />,
-      activeIcon: <OfficeBuildingIconSolid className="h-5 w-5" />,
-      badge: { count: 2, color: 'green' },
-      description: 'Gestion des chambres et occupations',
-      color: 'from-emerald-500 to-green-600'
-    },
-    { 
-      name: 'Étudiants', 
-      path: '/etudiants', 
-      icon: <UsersIcon className="h-5 w-5" />,
-      activeIcon: <UsersIconSolid className="h-5 w-5" />,
-      badge: { count: 12, color: 'blue' },
-      description: 'Gestion des étudiants résidents',
-      color: 'from-blue-500 to-indigo-600'
-    },
-    { 
-      name: 'Stagiaires', 
-      path: '/stagiaires', 
-      icon: <UserGroupIcon className="h-5 w-5" />,
-      activeIcon: <UserGroupIconSolid className="h-5 w-5" />,
-      badge: { count: 5, color: 'blue' },
-      description: 'Gestion des stagiaires hébergés',
-      color: 'from-violet-500 to-purple-600'
-    },
-    { 
-      name: 'Cuisine', 
-      path: '/cuisine', 
-      icon: <CakeIcon className="h-5 w-5" />,
-      activeIcon: <CakeIconSolid className="h-5 w-5" />,
-      badge: null,
-      description: 'Gestion de la restauration et menus',
-      color: 'from-amber-500 to-orange-600'
+      color: 'from-sky-500 to-blue-600',
+      category: 'main'
     }
   ];
-  
-  const secondaryNavItems = [
+
+  // Navigation sections with their items
+  const navSections = [
+    {
+      title: 'Gestion des Chambres',
+      icon: <OfficeBuildingIcon className="h-4 w-4" />,
+      items: [
+        { 
+          name: 'Chambres', 
+          path: '/chambres', 
+          icon: <OfficeBuildingIcon className="h-5 w-5" />,
+          activeIcon: <OfficeBuildingIconSolid className="h-5 w-5" />,
+          badge: { count: 2, color: 'green' },
+          description: 'Gestion des chambres et occupations',
+          color: 'from-emerald-500 to-green-600',
+          category: 'chambres'
+        },
+      
+      ]
+    },
+    {
+      title: 'Gestion des Résidents',
+      icon: <UsersIcon className="h-4 w-4" />,
+      items: [
+        // { 
+        //   name: 'Étudiants', 
+        //   path: '/etudiants', 
+        //   icon: <UsersIcon className="h-5 w-5" />,
+        //   activeIcon: <UsersIconSolid className="h-5 w-5" />,
+        //   badge: { count: 12, color: 'blue' },
+        //   description: 'Gestion des étudiants résidents',
+        //   color: 'from-blue-500 to-indigo-600',
+        //   category: 'residents'
+        // },
+        { 
+          name: 'Stagiaires', 
+          path: '/stagiaires', 
+          icon: <BriefcaseIcon className="h-5 w-5" />,
+          activeIcon: <BriefcaseIconSolid className="h-5 w-5" />,
+          badge: { count: 5, color: 'blue' },
+          description: 'Gestion des stagiaires hébergés',
+          color: 'from-violet-500 to-purple-600',
+          category: 'residents'
+        },
+        { 
+          name: 'Personnel', 
+          path: '/personnel', 
+          icon: <UserIcon className="h-5 w-5" />,
+          activeIcon: <UserIconSolid className="h-5 w-5" />,
+          badge: null,
+          description: 'Gestion du personnel',
+          color: 'from-indigo-500 to-blue-600',
+          category: 'residents'
+        }
+      ]
+    },
+    {
+      title: 'Gestion de la Cuisine',
+      icon: <CakeIcon className="h-4 w-4" />,
+      items: [
+        { 
+          name: 'Cuisine', 
+          path: '/cuisine', 
+          icon: <CakeIcon className="h-5 w-5" />,
+          activeIcon: <CakeIconSolid className="h-5 w-5" />,
+          badge: null,
+          description: 'Aperçu de la restauration',
+          color: 'from-amber-500 to-orange-600',
+          category: 'cuisine'
+        },
+        // { 
+        //   name: 'Menus', 
+        //   path: '/cuisine/menus', 
+        //   icon: <DocumentTextIcon className="h-5 w-5" />,
+        //   activeIcon: <DocumentTextIconSolid className="h-5 w-5" />,
+        //   badge: null,
+        //   description: 'Gestion des menus',
+        //   color: 'from-orange-500 to-amber-600',
+        //   category: 'cuisine'
+        // }
+      ]
+    },
   ];
 
   return (
@@ -254,47 +302,90 @@ const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
           </nav>
         </div>
         
-        {/* Divider */}
-        {!collapsed && (
-          <div className="px-6 py-2">
-            <div className="h-px bg-white/10"></div>
+        {/* Sections de navigation par catégorie */}
+        {navSections.map((section, index) => (
+          <div key={index} className="mt-3">
+            {/* Section title - only in expanded mode */}
+            {!collapsed && (
+              <div className="px-5 py-2 flex items-center">
+                <div className="text-blue-300/50 mr-2">
+                  {section.icon}
+                </div>
+                <h2 className="text-xs uppercase tracking-wider font-semibold text-blue-300/50">
+                  {section.title}
+                </h2>
+              </div>
+            )}
+            {/* Section divider - collapsed mode */}
+            {collapsed && index > 0 && (
+              <div className="px-3 py-2">
+                <div className="h-px bg-white/10"></div>
+              </div>
+            )}
+            
+            {/* Section items */}
+            <div className={`py-1 px-3 ${collapsed ? 'px-2' : ''}`}>
+              <nav className="space-y-1">
+                {section.items.map((item) => (
+                  <NavLink 
+                    key={item.path} 
+                    to={item.path}
+                    className={({ isActive }) => `
+                      group relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-200
+                      ${isActive 
+                        ? 'text-white font-medium' 
+                        : 'text-blue-100/70 hover:text-white hover:bg-white/5'}
+                      ${collapsed ? 'justify-center' : ''}
+                    `}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {/* Active state with gradient background */}
+                        {isActive && (
+                          <div className={`absolute inset-0 bg-gradient-to-r ${item.color} rounded-lg opacity-90`}></div>
+                        )}
+                        
+                        <div className="flex-shrink-0 relative z-10">
+                          {isActive && item.activeIcon ? item.activeIcon : item.icon}
+                        </div>
+                        
+                        {!collapsed && (
+                          <>
+                            <span className="truncate relative z-10">{item.name}</span>
+                            
+                            {/* Badge */}
+                            {item.badge && (
+                              <div className={`
+                                ml-auto px-1.5 py-0.5 flex-shrink-0 rounded-full text-xs font-medium relative z-10
+                                ${item.badge.color === 'green' ? 'bg-emerald-500 text-white' : ''}
+                                ${item.badge.color === 'blue' ? 'bg-blue-500 text-white' : ''}
+                              `}>
+                                {item.badge.count}
+                              </div>
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Badge in collapsed mode */}
+                        {collapsed && item.badge && (
+                          <div className="absolute top-0 right-0 -mt-1 -mr-1 z-10">
+                            <div className={`
+                              w-4 h-4 flex items-center justify-center rounded-full text-xs font-medium
+                              ${item.badge.color === 'green' ? 'bg-emerald-500 text-white' : ''}
+                              ${item.badge.color === 'blue' ? 'bg-blue-500 text-white' : ''}
+                            `}>
+                              {item.badge.count}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
           </div>
-        )}
-        
-        {/* Secondary navigation items */}
-        <div className={`py-2 px-3 ${collapsed ? 'px-2' : ''}`}>
-          <nav className="space-y-1">
-            {secondaryNavItems.map((item) => (
-              <NavLink 
-                key={item.path} 
-                to={item.path}
-                className={({ isActive }) => `
-                  group relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-200
-                  ${isActive 
-                    ? 'text-white font-medium' 
-                    : 'text-blue-100/70 hover:text-white hover:bg-white/5'}
-                  ${collapsed ? 'justify-center' : ''}
-                `}
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <div className={`absolute inset-0 bg-gradient-to-r ${item.color} rounded-lg opacity-90`}></div>
-                    )}
-                    
-                    <div className="flex-shrink-0 relative z-10">
-                      {item.icon}
-                    </div>
-                    
-                    {!collapsed && (
-                      <span className="truncate relative z-10">{item.name}</span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
+        ))}
       </div>
       
       {/* User profile section */}

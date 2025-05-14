@@ -49,7 +49,6 @@ const Cuisine = () => {
   
   return (
     <div className="px-4 sm:px-6 md:px-8 py-8">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-8">Gestion de la Cuisine</h1>
       
       <KitchenDashboard 
         tasks={tasks} 

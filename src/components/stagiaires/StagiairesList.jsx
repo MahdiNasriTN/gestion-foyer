@@ -107,6 +107,12 @@ const StagiairesList = ({
                 </div>
                 <h3 className="text-base font-medium text-gray-800">{stagiaire.nom}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">{stagiaire.email}</p>
+                <div className="mt-1">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                    ${stagiaire.type === 'externe' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                    {stagiaire.type === 'externe' ? 'Externe' : 'Interne'}
+                  </span>
+                </div>
                 <div className="mt-2">
                   {isStagiaireActif(stagiaire) ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
@@ -263,7 +269,14 @@ const StagiairesList = ({
                       <div className="font-medium text-gray-800 group-hover:text-cyan-600 transition-colors">
                         {stagiaire.nom}
                       </div>
-                      <div className="text-xs text-gray-500">{stagiaire.email}</div>
+                      <div className="text-xs text-gray-500 flex items-center">
+                        <span>{stagiaire.email}</span>
+                        {/* Badge de type de stagiaire */}
+                        <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium 
+                          ${stagiaire.type === 'externe' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                          {stagiaire.type === 'externe' ? 'Externe' : 'Interne'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -351,7 +364,7 @@ const StagiairesList = ({
   };
 
   return (
-    <div className="relative overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200">
+    <div className="relative overflow-hidden bg-white rounded-xl border border-gray-200">
       {/* En-tête avec titre de section */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-slate-50 to-blue-50">
         <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
