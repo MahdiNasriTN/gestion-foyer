@@ -7,10 +7,11 @@ import {
   HomeIcon,
   ChevronRightIcon
 } from '@heroicons/react/outline';
+import { login } from '../services/api';
 
 const Login = ({ setAuthenticated }) => {
   const [credentials, setCredentials] = useState({
-    username: '',
+    email: '',
     password: '',
   });
   const [error, setError] = useState('');
@@ -46,19 +47,11 @@ const Login = ({ setAuthenticated }) => {
     setIsLoading(true);
     
     try {
-      // Simulate network request
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Simulation d'authentification - dans un cas réel, cela se ferait via une API
-      if (credentials.username === '' && credentials.password === '') {
-        localStorage.setItem('isAuthenticated', 'true');
-        setAuthenticated(true);
-        navigate('/');
-      } else {
-        setError('Identifiants incorrects. Veuillez réessayer.');
-      }
+      await login(credentials);
+      setAuthenticated(true);
+      navigate('/');
     } catch (err) {
-      setError('Une erreur s\'est produite. Veuillez réessayer.');
+      setError(err.message || 'Une erreur s\'est produite. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -90,9 +83,6 @@ const Login = ({ setAuthenticated }) => {
               </div>
               <h1 className="text-2xl font-bold">Foyer Manager</h1>
             </div>
-            <p className="mt-2 text-blue-100 max-w-sm">
-              Plateforme de gestion complète pour les foyers universitaires
-            </p>
           </div>
           
           {/* Middle area - feature highlights */}
@@ -110,9 +100,9 @@ const Login = ({ setAuthenticated }) => {
               className={`space-y-6 transition-all delay-500 duration-1000 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
             >
               {[
-                { title: "Gestion des étudiants", desc: "Suivez les informations et les paiements" },
+                { title: "Gestion des stagiaires", desc: "Suivez les informations et les paiements" },
                 { title: "Planning des chambres", desc: "Optimisez l'occupation des espaces" },
-                { title: "Organisation des repas", desc: "Planifiez les menus et les services" }
+                { title: "Organisation des cuisine", desc: "Planifiez les menus et les services" }
               ].map((feature, index) => (
                 <div key={index} className="flex items-start">
                   <div className="flex-shrink-0 p-2 bg-white/10 rounded-lg">
@@ -168,23 +158,24 @@ const Login = ({ setAuthenticated }) => {
           )}
           
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            @csrf
             <div className="space-y-6">
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                  Nom d'utilisateur
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email
                 </label>
                 <div className="mt-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <UserCircleIcon className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
                     className="appearance-none block w-full pl-10 px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all"
-                    placeholder="Entrez votre nom d'utilisateur"
-                    value={credentials.username}
+                    placeholder="Entrez votre email"
+                    value={credentials.email}
                     onChange={handleChange}
                   />
                 </div>
