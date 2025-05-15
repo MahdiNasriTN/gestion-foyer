@@ -396,22 +396,7 @@ const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
         }}
       >
         <div className={`flex ${collapsed ? 'justify-center' : ''}`}>
-          {collapsed ? (
-            <button 
-              onClick={onLogout}
-              className="p-2 rounded-lg text-red-300 hover:bg-red-500/20 transition-colors"
-            >
-              <LogoutIcon className="h-5 w-5" />
-            </button>
-          ) : (
-            <button 
-              onClick={onLogout}
-              className="w-full flex items-center px-3 py-2 rounded-lg text-red-300 hover:bg-red-500/20 transition-colors"
-            >
-              <LogoutIcon className="h-5 w-5 mr-2" />
-              <span>Déconnexion</span>
-            </button>
-          )}
+  
         </div>
       </div>
       

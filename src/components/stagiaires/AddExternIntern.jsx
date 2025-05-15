@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createExternStagiaire, updateStagiaire } from '../../services/api';
 
-// Ajouter ces props
 const AddExternIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) => {
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(initialData?.profilePhoto || null);
   const [dragActive, setDragActive] = useState(false);
   const [animatePhoto, setAnimatePhoto] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   const [formData, setFormData] = useState(initialData || {
     firstName: '',
@@ -18,6 +20,8 @@ const AddExternIntern = ({ onCancel, onSave, initialData = null, isEditing = fal
     groupNumber: '',
     trainingPeriodFrom: '',
     trainingPeriodTo: '',
+    email: '',
+    phoneNumber: '',
     profilePhoto: null,
   });
 
@@ -28,10 +32,7 @@ const AddExternIntern = ({ onCancel, onSave, initialData = null, isEditing = fal
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData({ ...formData, [name]: value });
   };
 
   // Gestionnaires pour la photo de profil
@@ -90,10 +91,38 @@ const AddExternIntern = ({ onCancel, onSave, initialData = null, isEditing = fal
     fileInputRef.current.click();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form Data:', formData);
-    onSave(formData);
+    setLoading(true);
+    setError(null);
+
+    try {
+      let response;
+
+      // Ajouter les champs sexe et email requis par le modèle MongoDB
+      const submissionData = {
+        ...formData,
+        sexe: formData.sexe || 'homme', // Valeur par défaut
+        email: formData.email || `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`,
+        dateArrivee: formData.trainingPeriodFrom,
+        dateDepart: formData.trainingPeriodTo,
+        entreprise: formData.assignedCenter
+      };
+
+      if (isEditing) {
+        response = await updateStagiaire(initialData._id, submissionData);
+      } else {
+        response = await createExternStagiaire(submissionData);
+      }
+
+      setLoading(false);
+      // Passer les données de la réponse au composant parent
+      onSave(response.data.stagiaire);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || "Une erreur s'est produite lors de l'enregistrement.");
+      console.error("Erreur lors de l'enregistrement:", err);
+    }
   };
 
   // Updated styling classes with new premium color scheme
@@ -346,6 +375,36 @@ const AddExternIntern = ({ onCancel, onSave, initialData = null, isEditing = fal
                 value={formData.placeOfBirth}
                 onChange={handleChange}
                 placeholder="Lieu de naissance"
+                required
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className={labelClass}>
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email"
+                required
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="phoneNumber" className={labelClass}>
+                Numéro de téléphone
+              </label>
+              <input
+                type="text"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="Numéro de téléphone"
                 required
                 className={inputClass}
               />

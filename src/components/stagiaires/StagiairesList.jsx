@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PencilAltIcon, 
   TrashIcon, 
@@ -31,61 +31,41 @@ const StagiairesList = ({
   onChangePage,
   selectedFilter,
   onChangeFilter,
-  viewMode = 'list'
+  viewMode = 'list',
+  filters,
+  onApplyFilters,
+  onResetFilters
 }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [activeFilterTab, setActiveFilterTab] = useState('status');
-  const [filters, setFilters] = useState({
-    status: 'all',
-    room: 'all',
-    gender: 'all',
-    session: 'all',
-    startDate: '',
-    endDate: '',
-    specificRoom: ''
-  });
+  const [localFilters, setLocalFilters] = useState(filters);
   const [showDateFilters, setShowDateFilters] = useState(false);
+
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
 
   const availableRooms = ['101', '102', '103', '104', '105']; // Example room numbers
 
   const handleFilterChange = (filterType, value) => {
-    setFilters((prevFilters) => ({
+    setLocalFilters((prevFilters) => ({
       ...prevFilters,
       [filterType]: value
     }));
   };
 
   const resetFilters = () => {
-    setFilters({
-      status: 'all',
-      room: 'all',
-      gender: 'all',
-      session: 'all',
-      startDate: '',
-      endDate: '',
-      specificRoom: ''
-    });
-    // Immediately apply the reset filters
-    onChangeFilter({
-      status: 'all',
-      room: 'all',
-      gender: 'all',
-      session: 'all',
-      startDate: '',
-      endDate: '',
-      specificRoom: ''
-    });
+    onResetFilters();
   };
 
   const applyFilters = () => {
-    // Send all filters to parent component for backend filtering
-    onChangeFilter(filters);
+    onApplyFilters(localFilters);
   };
 
   const getActiveFilterCount = () => {
     let count = 0;
-    Object.values(filters).forEach((value) => {
+    Object.values(localFilters).forEach((value) => {
       if (value && value !== 'all') count++;
     });
     return count;
@@ -484,21 +464,21 @@ const StagiairesList = ({
                     <div className="px-2 py-2 text-xs font-medium text-gray-500 uppercase">Par activité</div>
                     
                     <button 
-                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${filters.status === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${localFilters.status === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
                       onClick={() => handleFilterChange('status', 'all')}
                     >
                       <span className="w-4 h-4 flex items-center justify-center">
-                        {filters.status === 'all' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
+                        {localFilters.status === 'all' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
                       </span>
                       <span>Tous</span>
                     </button>
                     
                     <button 
-                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${filters.status === 'active' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${localFilters.status === 'active' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
                       onClick={() => handleFilterChange('status', 'active')}
                     >
                       <span className="w-4 h-4 flex items-center justify-center">
-                        {filters.status === 'active' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
+                        {localFilters.status === 'active' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
                       </span>
                       <span>Actifs</span>
                       <span className="ml-auto bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
@@ -507,11 +487,11 @@ const StagiairesList = ({
                     </button>
                     
                     <button 
-                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${filters.status === 'inactive' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${localFilters.status === 'inactive' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
                       onClick={() => handleFilterChange('status', 'inactive')}
                     >
                       <span className="w-4 h-4 flex items-center justify-center">
-                        {filters.status === 'inactive' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
+                        {localFilters.status === 'inactive' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
                       </span>
                       <span>Inactifs</span>
                       <span className="ml-auto bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded-full">
@@ -522,11 +502,11 @@ const StagiairesList = ({
                     <div className="px-2 py-2 text-xs font-medium text-gray-500 uppercase mt-3">Par chambre</div>
                     
                     <button 
-                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${filters.room === 'withRoom' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${localFilters.room === 'withRoom' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
                       onClick={() => handleFilterChange('room', 'withRoom')}
                     >
                       <span className="w-4 h-4 flex items-center justify-center">
-                        {filters.room === 'withRoom' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
+                        {localFilters.room === 'withRoom' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
                       </span>
                       <span>Avec chambre</span>
                       <span className="ml-auto bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full">
@@ -535,11 +515,11 @@ const StagiairesList = ({
                     </button>
                     
                     <button 
-                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${filters.room === 'withoutRoom' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 ${localFilters.room === 'withoutRoom' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
                       onClick={() => handleFilterChange('room', 'withoutRoom')}
                     >
                       <span className="w-4 h-4 flex items-center justify-center">
-                        {filters.room === 'withoutRoom' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
+                        {localFilters.room === 'withoutRoom' && <CheckCircleIcon className="h-4 w-4 text-cyan-500" />}
                       </span>
                       <span>Sans chambre</span>
                       <span className="ml-auto bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full">
@@ -548,13 +528,13 @@ const StagiairesList = ({
                     </button>
                     
                     {/* Room number selection */}
-                    {filters.room === 'withRoom' && (
+                    {localFilters.room === 'withRoom' && (
                       <div className="px-3 py-2">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Numéro de chambre
                         </label>
                         <select
-                          value={filters.specificRoom || ''}
+                          value={localFilters.specificRoom || ''}
                           onChange={(e) => handleFilterChange('specificRoom', e.target.value)}
                           className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                         >
@@ -575,7 +555,7 @@ const StagiairesList = ({
                     
                     <div className="flex space-x-2 px-3 py-2">
                       <button
-                        className={`flex-1 py-2 px-3 rounded-lg border ${filters.gender === 'all' 
+                        className={`flex-1 py-2 px-3 rounded-lg border ${localFilters.gender === 'all' 
                           ? 'bg-blue-50 text-blue-700 border-blue-200' 
                           : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         onClick={() => handleFilterChange('gender', 'all')}
@@ -588,7 +568,7 @@ const StagiairesList = ({
                         </div>
                       </button>
                       <button
-                        className={`flex-1 py-2 px-3 rounded-lg border ${filters.gender === 'homme' 
+                        className={`flex-1 py-2 px-3 rounded-lg border ${localFilters.gender === 'homme' 
                           ? 'bg-blue-50 text-blue-700 border-blue-200' 
                           : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         onClick={() => handleFilterChange('gender', 'homme')}
@@ -601,7 +581,7 @@ const StagiairesList = ({
                         </div>
                       </button>
                       <button
-                        className={`flex-1 py-2 px-3 rounded-lg border ${filters.gender === 'femme' 
+                        className={`flex-1 py-2 px-3 rounded-lg border ${localFilters.gender === 'femme' 
                           ? 'bg-blue-50 text-blue-700 border-blue-200' 
                           : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         onClick={() => handleFilterChange('gender', 'femme')}
@@ -619,7 +599,7 @@ const StagiairesList = ({
                     
                     <div className="grid grid-cols-3 gap-2 px-3 py-2">
                       <button
-                        className={`py-2 px-3 rounded-lg border text-center ${filters.session === 'septembre' 
+                        className={`py-2 px-3 rounded-lg border text-center ${localFilters.session === 'septembre' 
                           ? 'bg-amber-50 text-amber-700 border-amber-200' 
                           : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         onClick={() => handleFilterChange('session', 'septembre')}
@@ -630,7 +610,7 @@ const StagiairesList = ({
                         </div>
                       </button>
                       <button
-                        className={`py-2 px-3 rounded-lg border text-center ${filters.session === 'novembre' 
+                        className={`py-2 px-3 rounded-lg border text-center ${localFilters.session === 'novembre' 
                           ? 'bg-amber-50 text-amber-700 border-amber-200' 
                           : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         onClick={() => handleFilterChange('session', 'novembre')}
@@ -641,7 +621,7 @@ const StagiairesList = ({
                         </div>
                       </button>
                       <button
-                        className={`py-2 px-3 rounded-lg border text-center ${filters.session === 'fevrier' 
+                        className={`py-2 px-3 rounded-lg border text-center ${localFilters.session === 'fevrier' 
                           ? 'bg-amber-50 text-amber-700 border-amber-200' 
                           : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                         onClick={() => handleFilterChange('session', 'fevrier')}
@@ -666,7 +646,7 @@ const StagiairesList = ({
                           <input 
                             type="date"
                             className="block w-full text-sm border-gray-300 rounded-md shadow-sm"
-                            value={filters.startDate || ''}
+                            value={localFilters.startDate || ''}
                             onChange={(e) => handleFilterChange('startDate', e.target.value)}
                           />
                         </div>
@@ -675,7 +655,7 @@ const StagiairesList = ({
                           <input 
                             type="date"
                             className="block w-full text-sm border-gray-300 rounded-md shadow-sm"
-                            value={filters.endDate || ''}
+                            value={localFilters.endDate || ''}
                             onChange={(e) => handleFilterChange('endDate', e.target.value)}
                           />
                         </div>
@@ -690,7 +670,7 @@ const StagiairesList = ({
                           <input 
                             type="date"
                             className="block w-full text-sm border-gray-300 rounded-md shadow-sm"
-                            value={filters.endDate || ''}
+                            value={localFilters.endDate || ''}
                             onChange={(e) => handleFilterChange('endDate', e.target.value)}
                           />
                         </div>
@@ -699,7 +679,7 @@ const StagiairesList = ({
                           <input 
                             type="date"
                             className="block w-full text-sm border-gray-300 rounded-md shadow-sm"
-                            value={filters.endDate || ''}
+                            value={localFilters.endDate || ''}
                             onChange={(e) => handleFilterChange('endDate', e.target.value)}
                           />
                         </div>
@@ -743,7 +723,7 @@ const StagiairesList = ({
           <div className="flex gap-1.5">
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.status === 'all' 
+                localFilters.status === 'all' 
                   ? 'bg-blue-100 text-blue-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -753,24 +733,24 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors flex items-center ${
-                filters.status === 'active' 
+                localFilters.status === 'active' 
                   ? 'bg-green-100 text-green-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
               onClick={() => handleFilterChange('status', 'active')}
             >
-              <div className={filters.status === 'active' ? "w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" : ""}></div>
+              <div className={localFilters.status === 'active' ? "w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" : ""}></div>
               Actifs <span className="ml-1 opacity-60">({getFilterCount('active')})</span>
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors flex items-center ${
-                filters.status === 'inactive' 
+                localFilters.status === 'inactive' 
                   ? 'bg-gray-200 text-gray-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
               onClick={() => handleFilterChange('status', 'inactive')}
             >
-              <div className={filters.status === 'inactive' ? "w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5" : ""}></div>
+              <div className={localFilters.status === 'inactive' ? "w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5" : ""}></div>
               Inactifs <span className="ml-1 opacity-60">({getFilterCount('inactive')})</span>
             </button>
           </div>
@@ -787,7 +767,7 @@ const StagiairesList = ({
           <div className="flex gap-1.5 items-center flex-wrap">
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.room === 'all' 
+                localFilters.room === 'all' 
                   ? 'bg-blue-100 text-blue-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -797,7 +777,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.room === 'withRoom' 
+                localFilters.room === 'withRoom' 
                   ? 'bg-emerald-100 text-emerald-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -807,7 +787,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.room === 'withoutRoom' 
+                localFilters.room === 'withoutRoom' 
                   ? 'bg-amber-100 text-amber-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -822,7 +802,7 @@ const StagiairesList = ({
               <input
                 type="text"
                 placeholder="Ex: 101"
-                value={filters.specificRoom}
+                value={localFilters.specificRoom}
                 onChange={(e) => handleFilterChange('specificRoom', e.target.value)}
                 className="w-16 h-7 text-xs border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
@@ -841,7 +821,7 @@ const StagiairesList = ({
           <div className="flex gap-1.5">
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.gender === 'all' 
+                localFilters.gender === 'all' 
                   ? 'bg-blue-100 text-blue-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -851,7 +831,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.gender === 'homme' 
+                localFilters.gender === 'homme' 
                   ? 'bg-blue-100 text-blue-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -864,7 +844,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.gender === 'femme' 
+                localFilters.gender === 'femme' 
                   ? 'bg-pink-100 text-pink-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -889,7 +869,7 @@ const StagiairesList = ({
           <div className="flex gap-1.5">
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.session === 'all' 
+                localFilters.session === 'all' 
                   ? 'bg-blue-100 text-blue-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -899,7 +879,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.session === 'septembre' 
+                localFilters.session === 'septembre' 
                   ? 'bg-amber-100 text-amber-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -909,7 +889,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.session === 'novembre' 
+                localFilters.session === 'novembre' 
                   ? 'bg-amber-100 text-amber-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -919,7 +899,7 @@ const StagiairesList = ({
             </button>
             <button
               className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                filters.session === 'fevrier' 
+                localFilters.session === 'fevrier' 
                   ? 'bg-amber-100 text-amber-700 font-medium' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -985,8 +965,8 @@ const StagiairesList = ({
                   <div>
                     <div className="text-xs text-gray-500 mb-0.5">Sélectionner</div>
                     <div className="text-sm font-medium text-gray-800">
-                      {filters.startDate 
-                        ? new Date(filters.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                      {localFilters.startDate 
+                        ? new Date(localFilters.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) 
                         : 'Pas de date sélectionnée'}
                     </div>
                   </div>
@@ -1000,11 +980,11 @@ const StagiairesList = ({
                   <input 
                     type="date"
                     className="block w-full pl-10 pr-3 py-2 text-xs border-gray-300 focus:ring-blue-500 focus:border-blue-500 rounded-lg bg-gray-50 hover:bg-white transition-colors"
-                    value={filters.startDate || ''}
+                    value={localFilters.startDate || ''}
                     onChange={(e) => handleFilterChange('startDate', e.target.value)}
                   />
                 </div>
-                {!filters.startDate && (
+                {!localFilters.startDate && (
                   <div className="mt-3 flex">
                     <button
                       onClick={() => handleFilterChange('startDate', new Date().toISOString().split('T')[0])}
@@ -1042,8 +1022,8 @@ const StagiairesList = ({
                   <div>
                     <div className="text-xs text-gray-500 mb-0.5">Sélectionner</div>
                     <div className="text-sm font-medium text-gray-800">
-                      {filters.endDate 
-                        ? new Date(filters.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                      {localFilters.endDate 
+                        ? new Date(localFilters.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) 
                         : 'Pas de date sélectionnée'}
                     </div>
                   </div>
@@ -1057,11 +1037,11 @@ const StagiairesList = ({
                   <input 
                     type="date"
                     className="block w-full pl-10 pr-3 py-2 text-xs border-gray-300 focus:ring-green-500 focus:border-green-500 rounded-lg bg-gray-50 hover:bg-white transition-colors"
-                    value={filters.endDate || ''}
+                    value={localFilters.endDate || ''}
                     onChange={(e) => handleFilterChange('endDate', e.target.value)}
                   />
                 </div>
-                {!filters.endDate && (
+                {!localFilters.endDate && (
                   <div className="mt-3 flex">
                     <button
                       onClick={() => {
@@ -1090,7 +1070,7 @@ const StagiairesList = ({
           </div>
           
           {/* Date range description */}
-          {filters.startDate && filters.endDate && (
+          {localFilters.startDate && localFilters.endDate && (
             <div className="mt-4 bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between">
               <div className="flex items-center text-sm text-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1098,15 +1078,15 @@ const StagiairesList = ({
                 </svg>
                 Période sélectionnée: 
                 <span className="font-medium ml-1">
-                  {new Date(filters.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                  {new Date(localFilters.startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                 </span>
                 <span className="mx-1">au</span>
                 <span className="font-medium">
-                  {new Date(filters.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {new Date(localFilters.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
                 {(() => {
-                  const start = new Date(filters.startDate);
-                  const end = new Date(filters.endDate);
+                  const start = new Date(localFilters.startDate);
+                  const end = new Date(localFilters.endDate);
                   const diffTime = Math.abs(end - start);
                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                   return <span className="ml-1 text-xs text-gray-500">({diffDays} jours)</span>;

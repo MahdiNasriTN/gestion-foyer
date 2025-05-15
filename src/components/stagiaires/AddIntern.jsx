@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createInternStagiaire, updateStagiaire } from '../../services/api';
 
-// Ajouter ces props
 const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) => {
   const fileInputRef = useRef(null);
-  // Modifier l'initialisation de formData
+  const [previewImage, setPreviewImage] = useState(initialData?.profilePhoto || null);
+  const [dragActive, setDragActive] = useState(false);
+  const [animatePhoto, setAnimatePhoto] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const [formData, setFormData] = useState(initialData || {
     firstName: '',
     lastName: '',
@@ -16,11 +21,12 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
     currentSituation: '',
     phoneNumber: '',
     sendingAddress: '',
-    city: '',           // Nouveau champ pour la ville
-    postalCode: '',     // Nouveau champ pour le code postal
+    city: '',
+    postalCode: '',
     centerName: '',
     specialization: '',
     cycle: '',
+    email: '',
     fatherFirstName: '',
     fatherLastName: '',
     fatherPhone: '',
@@ -31,60 +37,37 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
     motherPhone: '',
     motherJob: '',
     motherJobPlace: '',
-    numberOfBrothers: '',
-    numberOfSisters: '',
+    numberOfBrothers: 0,
+    numberOfSisters: 0,
     hobby: '',
     trainingPeriodFrom: '',
     trainingPeriodTo: '',
-    profilePhoto: null, // Nouveau champ pour la photo
+    profilePhoto: null,
   });
 
-  // Initialiser previewImage si une image existe déjà
-  const [previewImage, setPreviewImage] = useState(initialData?.profilePhoto || null);
-  const [dragActive, setDragActive] = useState(false);
-  const [animatePhoto, setAnimatePhoto] = useState(false);
-  
   // Animation d'entrée pour la photo
   useEffect(() => {
     setTimeout(() => setAnimatePhoto(true), 300);
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Gestionnaires pour la photo de profil
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      handleFileUpload(file);
-    }
-  };
-  
-  const handleFileUpload = (file) => {
-    if (file && file.type.substring(0, 5) === "image") {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-        setFormData(prev => ({
-          ...prev,
-          profilePhoto: reader.result,
-        }));
-      };
-      reader.readAsDataURL(file);
+    const { name, value, type } = e.target;
+    
+    // Pour les champs numériques
+    if (type === 'number') {
+      setFormData({ ...formData, [name]: value === '' ? '' : Number(value) });
+    } else {
+      setFormData({ ...formData, [name]: value });
     }
   };
 
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -93,31 +76,117 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
+    
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+      handleFile(e.dataTransfer.files[0]);
     }
   };
-  
-  const removeImage = () => {
-    setPreviewImage(null);
-    setFormData(prev => ({
-      ...prev,
-      profilePhoto: null,
-    }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-  
+
   const triggerFileSelect = () => {
     fileInputRef.current.click();
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Form Data:', formData);
-    onSave(formData);
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
   };
+
+  const handleFile = (file) => {
+    if (!file.type.match('image.*')) {
+      alert('Veuillez sélectionner une image valide.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Image = e.target.result;
+      setPreviewImage(base64Image);
+      setFormData({ ...formData, profilePhoto: base64Image });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    setPreviewImage(null);
+    setFormData({ ...formData, profilePhoto: null });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      let response;
+
+      // Ajouter les champs sexe et email requis par le modèle MongoDB
+      const submissionData = {
+        ...formData,
+        sexe: formData.sexe || 'homme', // Valeur par défaut
+        email: formData.email || `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`,
+        dateArrivee: formData.trainingPeriodFrom,
+        dateDepart: formData.trainingPeriodTo,
+        entreprise: formData.centerName
+      };
+
+      if (isEditing) {
+        response = await updateStagiaire(initialData._id, submissionData);
+      } else {
+        response = await createInternStagiaire(submissionData);
+      }
+
+      setLoading(false);
+      // Passer les données de la réponse au composant parent
+      onSave(response.data.stagiaire);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || "Une erreur s'est produite lors de l'enregistrement.");
+      console.error("Erreur lors de l'enregistrement:", err);
+    }
+  };
+
+  const fillTestData = () => {
+  const testData = {
+    firstName: 'Mahdi',
+    lastName: 'Nasri',
+    cinNumber: '09876543',
+    cinPlace: 'Tunis',
+    cinDate: '2020-05-15',
+    dateOfBirth: '1998-03-12',
+    placeOfBirth: 'Sousse',
+    nationality: 'Tunisienne',
+    currentSituation: 'Étudiant',
+    phoneNumber: '55123456',
+    sendingAddress: '25 Rue Ibn Khaldoun',
+    city: 'Tunis',
+    postalCode: '1002',
+    centerName: 'Institut Supérieur d\'Informatique',
+    specialization: 'Développement Web',
+    cycle: 'Licence',
+    email: 'mahdi.nasri@example.com',
+    fatherFirstName: 'Ahmed',
+    fatherLastName: 'Nasri',
+    fatherPhone: '98765432',
+    fatherJob: 'Ingénieur',
+    fatherJobPlace: 'Société ABC',
+    motherFirstName: 'Fatima',
+    motherLastName: 'Nasri',
+    motherPhone: '55667788',
+    motherJob: 'Médecin',
+    motherJobPlace: 'Hôpital X',
+    numberOfBrothers: 1,
+    numberOfSisters: 2,
+    hobby: 'Football, Lecture, Voyages',
+    trainingPeriodFrom: '2023-09-01',
+    trainingPeriodTo: '2024-06-30',
+    sexe: 'homme'
+  };
+  
+  setFormData(testData);
+};
+
 
   const inputClass = "mt-1 block w-full px-4 py-3 rounded-lg border-2 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none transition-all duration-200 ease-in-out";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
@@ -126,9 +195,30 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
 
   return (
     <div className="bg-white shadow-xl rounded-2xl p-8 max-w-full mx-auto my-4 w-[98%]">
-      <h2 className="text-4xl font-bold text-blue-800 mb-10 text-center">
-        Ajouter un Stagiaire
+      <h2 className="text-4xl font-bold text-blue-800 mb-5 text-center">
+        {isEditing ? 'Modifier un Stagiaire' : 'Ajouter un Stagiaire'}
       </h2>
+      
+      {/* Bouton de test pour remplir automatiquement le formulaire */}
+      <div className="flex justify-end mb-6">
+        <button
+          type="button"
+          onClick={fillTestData}
+          className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-colors border border-indigo-200 flex items-center shadow-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Remplir avec données test
+        </button>
+      </div>
+      
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+          <p className="font-medium">Erreur</p>
+          <p>{error}</p>
+        </div>
+      )}
       
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Photo de profil - NOUVELLE SECTION PREMIUM */}
@@ -192,7 +282,7 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeImage();
+                            handleRemoveImage(e);
                           }}
                           className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-lg"
                         >
@@ -462,6 +552,23 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 placeholder="Numéro de téléphone"
+                required
+                className={inputClass}
+              />
+            </div>
+            
+            {/* Ajout du champ email */}
+            <div>
+              <label htmlFor="email" className={labelClass}>
+                Adresse email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="exemple@email.com"
                 required
                 className={inputClass}
               />
@@ -828,7 +935,8 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
           <button
             type="button"
             onClick={onCancel}
-            className="group px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all flex items-center shadow-sm hover:shadow-md"
+            disabled={loading}
+            className="group px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all flex items-center shadow-sm hover:shadow-md disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -836,15 +944,28 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
             Annuler
           </button>
           
-          {/* Modifier le titre du bouton de soumission */}
+          {/* Modifier le bouton de soumission pour montrer l'état de chargement */}
           <button
             type="submit"
-            className="group px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all flex items-center shadow-sm hover:shadow-md"
+            disabled={loading}
+            className="group px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all flex items-center shadow-sm hover:shadow-md disabled:opacity-50"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            {isEditing ? 'Mettre à jour' : 'Ajouter'}
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Traitement en cours...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {isEditing ? 'Mettre à jour' : 'Ajouter'}
+              </>
+            )}
           </button>
         </div>
       </form>

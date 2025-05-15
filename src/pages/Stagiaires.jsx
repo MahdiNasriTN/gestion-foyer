@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { mockStagiaires, mockChambres } from '../utils/mockData';
+// Remplacer les imports de mocks par des appels API
+import { fetchStagiaires, deleteStagiaire, createInternStagiaire, createExternStagiaire, updateStagiaire } from '../services/api';
+import { mockChambres, mockStagiaires } from '../utils/mockData'; // Garder les chambres mockées pour le moment
 
 // Importation des composants
 import StagiairesList from '../components/stagiaires/StagiairesList';
@@ -11,8 +13,10 @@ import AddIntern from '../components/stagiaires/AddIntern';
 import AddExternIntern from '../components/stagiaires/AddExternIntern';
 
 const Stagiaires = () => {
-  const [stagiaires, setStagiaires] = useState(mockStagiaires);
-  const [filteredStagiaires, setFilteredStagiaires] = useState(mockStagiaires);
+  const [stagiaires, setStagiaires] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [filteredStagiaires, setFilteredStagiaires] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState('add');
   const [currentStagiaire, setCurrentStagiaire] = useState(null);
@@ -29,6 +33,65 @@ const Stagiaires = () => {
   const [chambresDisponibles, setChambresDisponibles] = useState([]);
   const [isAddingIntern, setIsAddingIntern] = useState(false);
   const [isAddingExtern, setIsAddingExtern] = useState(false);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: '',
+    type: ''
+  });
+  // État pour les filtres
+  const [filters, setFilters] = useState({
+    status: 'all',
+    room: 'all',
+    gender: 'all',
+    session: 'all',
+    startDate: '',
+    endDate: '',
+    specificRoom: ''
+  });
+
+  // Charger la liste des stagiaires depuis l'API
+  const loadStagiaires = async (filterParams = filters) => {
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await fetchStagiaires(filterParams);
+    // Déterminer la bonne propriété qui contient le tableau de stagiaires
+    let stagiairesList = [];
+    
+    if (response.data && response.data.data && response.data.data.stagiaires) {
+      stagiairesList = response.data.data.stagiaires;
+    } else if (response.data && response.data.stagiaires) {
+      stagiairesList = response.data.stagiaires;
+    } else if (response.data && Array.isArray(response.data)) {
+      stagiairesList = response.data;
+    } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      stagiairesList = response.data.data;
+    } else {
+      stagiairesList = [];
+    }
+    
+    // Ajuster le traitement des IDs si nécessaire
+    const processedStagiaires = stagiairesList.map(stagiaire => ({
+      ...stagiaire,
+      id: stagiaire._id || stagiaire.id // MongoDB utilise _id
+    }));
+    
+    
+    setStagiaires(processedStagiaires);
+    setFilteredStagiaires(processedStagiaires);
+  } catch (err) {
+    console.error("Erreur lors du chargement des stagiaires:", err);
+    setError("Impossible de charger les stagiaires. Veuillez réessayer.");
+    setStagiaires([]);
+    setFilteredStagiaires([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+    loadStagiaires();
+  }, []);
 
   // Préparation des chambres disponibles
   useEffect(() => {
@@ -114,9 +177,15 @@ const Stagiaires = () => {
 
   // Pagination
   const currentStagiaires = useMemo(() => {
+    // Vérifier si filteredStagiaires est bien un tableau
+    if (!Array.isArray(filteredStagiaires)) {
+      console.warn('filteredStagiaires is not an array:', filteredStagiaires);
+      return [];
+    }
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredStagiaires.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredStagiaires, currentPage]);
+  }, [filteredStagiaires, currentPage, itemsPerPage]);
   
   const totalPages = Math.max(1, Math.ceil(filteredStagiaires.length / itemsPerPage));
 
@@ -228,71 +297,92 @@ const Stagiaires = () => {
     setIsAddingIntern(false);
   };
   
-  // Fonction pour annuler l'ajout d'un stagiaire
-  const handleCancelAdd = () => {
-    setIsAddingIntern(false);
-    setIsAddingExtern(false);
-    setCurrentStagiaire(null); // Réinitialiser le stagiaire en cours d'édition
-  };
+  
   
   // Fonction pour sauvegarder un nouveau stagiaire interne
-  const handleSaveIntern = (formData) => {
-    if (currentStagiaire) {
-      // Mode édition : mettre à jour un stagiaire existant
-      const updatedStagiaire = {
-        ...currentStagiaire,
-        ...formData,
-        nom: `${formData.firstName} ${formData.lastName}`,
-        type: 'interne'
-      };
+  const handleSaveIntern = async (stagiaireData) => {
+    setLoading(true);
+    try {
+      // Le stagiaire a déjà été sauvegardé dans l'API par le composant AddIntern
+      // Recharger la liste complète
+      await loadStagiaires();
       
-      setStagiaires(prev => prev.map(s => 
-        s.id === currentStagiaire.id ? updatedStagiaire : s
-      ));
-    } else {
-      // Mode ajout : créer un nouveau stagiaire
-      const newId = Math.max(...stagiaires.map(s => s.id), 0) + 1;
-      const newStagiaire = { 
-        ...formData, 
-        id: newId, 
-        type: 'interne',
-        nom: `${formData.firstName} ${formData.lastName}`
-      };
-      setStagiaires([...stagiaires, newStagiaire]);
+      // Réinitialiser les états
+      setIsAddingIntern(false);
+      setCurrentStagiaire(null);
+      
+      setNotification({
+        show: true,
+        message: currentStagiaire ? 'Stagiaire mis à jour avec succès' : 'Stagiaire ajouté avec succès',
+        type: 'success'
+      });
+      
+      setTimeout(() => {
+        setNotification({ show: false, message: '', type: '' });
+      }, 3000);
+    } catch (err) {
+      console.error("Erreur:", err);
+      setNotification({
+        show: true,
+        message: "Une erreur s'est produite",
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    // Réinitialiser les états
-    setIsAddingIntern(false);
-    setCurrentStagiaire(null);
   };
 
   // Fonction pour sauvegarder un nouveau stagiaire externe
-  const handleSaveExtern = (formData) => {
-    if (currentStagiaire) {
-      // Mode édition : mettre à jour un stagiaire existant
-      const updatedStagiaire = {
-        ...currentStagiaire,
-        ...formData,
-        nom: `${formData.firstName} ${formData.lastName}`,
-        type: 'externe'
-      };
+  const handleSaveExtern = async (stagiaireData) => {
+    // Même logique que handleSaveIntern
+    setLoading(true);
+    try {
+      await loadStagiaires();
       
-      setStagiaires(prev => prev.map(s => 
-        s.id === currentStagiaire.id ? updatedStagiaire : s
-      ));
+      setIsAddingExtern(false);
+      setCurrentStagiaire(null);
+      
+      setNotification({
+        show: true,
+        message: currentStagiaire ? 'Stagiaire externe mis à jour avec succès' : 'Stagiaire externe ajouté avec succès',
+        type: 'success'
+      });
+      
+      setTimeout(() => {
+        setNotification({ show: false, message: '', type: '' });
+      }, 3000);
+    } catch (err) {
+      console.error("Erreur:", err);
+      setNotification({
+        show: true,
+        message: "Une erreur s'est produite",
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fonction pour gérer l'édition
+  const handleEdit = (stagiaire) => {
+    setCurrentStagiaire(stagiaire);
+    
+    // Rediriger vers le formulaire approprié selon le type
+    if (stagiaire.type === 'externe') {
+      setIsAddingExtern(true);
+      setIsAddingIntern(false);
     } else {
-      // Mode ajout : créer un nouveau stagiaire
-      const newId = Math.max(...stagiaires.map(s => s.id), 0) + 1;
-      const newStagiaire = { 
-        ...formData, 
-        id: newId, 
-        type: 'externe',
-        nom: `${formData.firstName} ${formData.lastName}`
-      };
-      setStagiaires([...stagiaires, newStagiaire]);
+      setIsAddingIntern(true);
+      setIsAddingExtern(false);
     }
     
-    // Réinitialiser les états
+    // Désactiver l'affichage du profil si actif
+    setViewProfileId(null);
+  };
+
+  // Fonction pour annuler l'ajout
+  const handleCancelAdd = () => {
+    setIsAddingIntern(false);
     setIsAddingExtern(false);
     setCurrentStagiaire(null);
   };
@@ -396,25 +486,84 @@ const Stagiaires = () => {
     
   };
 
-  // Modifiez la fonction handleEdit pour qu'elle affecte l'état d'affichage directement
-  const handleEdit = (stagiaire) => {
-    setCurrentStagiaire(stagiaire);
-    
-    // Si c'est un stagiaire externe, afficher AddExternIntern, sinon AddIntern
-    if (stagiaire.type === 'externe') {
-      setIsAddingExtern(true);
-      setIsAddingIntern(false);
-    } else {
-      setIsAddingIntern(true);
-      setIsAddingExtern(false);
+  // Gérer la suppression d'un stagiaire
+  const handleDeleteStagiaire = async (id) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce stagiaire?")) {
+      setLoading(true);
+      try {
+        await deleteStagiaire(id);
+        // Recharger la liste après suppression
+        loadStagiaires();
+        
+        // Si on visualisait le stagiaire supprimé, revenir à la liste
+        if (viewProfileId === id) {
+          setViewProfileId(null);
+        }
+        
+        setNotification({
+          show: true,
+          message: 'Stagiaire supprimé avec succès',
+          type: 'success'
+        });
+        
+        setTimeout(() => {
+          setNotification({ show: false, message: '', type: '' });
+        }, 3000);
+      } catch (err) {
+        console.error("Erreur lors de la suppression:", err);
+        setNotification({
+          show: true,
+          message: "Erreur lors de la suppression: " + (err.message || "Une erreur s'est produite"),
+          type: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
     }
-    
-    // Désactiver l'affichage du profil si actif
-    setViewProfileId(null);
+  };
+
+  // Fonction pour appliquer les filtres
+  const handleApplyFilters = (newFilters) => {
+    setFilters(newFilters);
+    loadStagiaires(newFilters);
+  };
+
+  // Fonction pour réinitialiser les filtres
+  const handleResetFilters = () => {
+    const resetFilters = {
+      status: 'all',
+      room: 'all',
+      gender: 'all',
+      session: 'all',
+      startDate: '',
+      endDate: '',
+      specificRoom: ''
+    };
+    setFilters(resetFilters);
+    loadStagiaires(resetFilters);
   };
 
   return (
     <div className="space-y-6">
+      {loading && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white p-5 rounded-lg shadow-lg flex items-center">
+            <svg className="animate-spin h-6 w-6 text-blue-500 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Chargement...
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4">
+          <p className="font-medium">Erreur</p>
+          <p>{error}</p>
+        </div>
+      )}
+
       {isAddingIntern && !viewProfileId ? (
         <AddIntern 
           onCancel={handleCancelAdd}
@@ -473,6 +622,9 @@ const Stagiaires = () => {
             selectedFilter={selectedFilter}
             onChangeFilter={setSelectedFilter}
             viewMode={viewMode}
+            filters={filters}
+            onApplyFilters={handleApplyFilters}
+            onResetFilters={handleResetFilters}
           />
         </>
       )}
@@ -485,6 +637,29 @@ const Stagiaires = () => {
         >
           {/* Contenu pour la suppression */}
         </StagiaireModal>
+      )}
+
+      {/* Notifications */}
+      {notification.show && (
+        <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-500 ease-in-out ${
+          notification.type === 'success' ? 'bg-green-100 text-green-800 border-l-4 border-green-500' : 
+          notification.type === 'error' ? 'bg-red-100 text-red-800 border-l-4 border-red-500' : 
+          'bg-blue-100 text-blue-800 border-l-4 border-blue-500'
+        }`}>
+          <div className="flex items-center">
+            {notification.type === 'success' && (
+              <svg className="h-6 w-6 text-green-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+            {notification.type === 'error' && (
+              <svg className="h-6 w-6 text-red-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <p className="font-medium">{notification.message}</p>
+          </div>
+        </div>
       )}
     </div>
   );
