@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { mockChambres, mockEtudiants, mockStagiaires } from '../utils/mockData';
+import { mockEtudiants, mockStagiaires } from '../utils/mockData'; // Nous allons toujours utiliser les données simulées pour les occupants pour l'instant
 import {
     PlusIcon,
     UserGroupIcon,
@@ -13,17 +13,82 @@ import ChambreModal from '../components/chambres/ChambreModal';
 import AssignModal from '../components/chambres/AssignModal';
 import ChambreCard from '../components/chambres/ChambreCard';
 import ChambreStats from '../components/chambres/ChambreStats';
+import { 
+    fetchChambres, 
+    createChambre, 
+    updateChambre, 
+    deleteChambre, 
+    assignOccupantsToRoom 
+} from '../services/api';
 
 const Chambres = () => {
-    const [chambres, setChambres] = useState(mockChambres);
+    // États
+    const [chambres, setChambres] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [currentChambre, setCurrentChambre] = useState(null);
     const [showAssignModal, setShowAssignModal] = useState(false);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' ou 'list'
+    const [viewMode, setViewMode] = useState('grid');
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [isStatsOpen, setIsStatsOpen] = useState(false);
     const [sortOption, setSortOption] = useState('numero');
+    const [filterEtage, setFilterEtage] = useState('all');
+    const [notification, setNotification] = useState({
+        show: false, 
+        message: '', 
+        type: ''
+    });
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // Charger les chambres depuis l'API
+    const loadChambres = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const filters = {
+                status: filterStatus !== 'all' ? filterStatus : null,
+                etage: filterEtage !== 'all' ? filterEtage : null,
+                search: searchTerm || null,
+                sortBy: sortOption,
+                sortOrder: 'asc'
+            };
+            
+            const response = await fetchChambres(filters);
+            
+            // Traiter la réponse pour assurer la compatibilité avec notre format
+            const processedChambres = response.data.data.map(chambre => ({
+                ...chambre,
+                id: chambre._id || chambre.id,
+                // Adapter les champs pour correspondre à notre modèle frontend si nécessaire
+                statut: chambre.statut || 'libre',
+                occupants: chambre.occupants || []
+            }));
+            
+            setChambres(processedChambres);
+        } catch (err) {
+            console.error('Erreur lors du chargement des chambres:', err);
+            setError('Impossible de charger les chambres.');
+            setChambres([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Charger les chambres au premier rendu et lorsque les filtres changent
+    useEffect(() => {
+        loadChambres();
+    }, [filterStatus, filterEtage, sortOption]); // searchTerm est géré séparément avec un délai
+
+    // Effet pour gérer la recherche avec un délai
+    useEffect(() => {
+        const searchTimer = setTimeout(() => {
+            loadChambres();
+        }, 500); // Attendre 500ms après la dernière frappe
+        
+        return () => clearTimeout(searchTimer);
+    }, [searchTerm]);
 
     const handleOpenModal = (chambre = null) => {
         setCurrentChambre(chambre || {
@@ -43,79 +108,134 @@ const Chambres = () => {
         setShowAssignModal(true);
     };
 
-    const handleDelete = (id) => {
-        setChambres(chambres.filter(chambre => chambre.id !== id));
-    };
-
-    // Dans Chambres.jsx, dans la fonction handleSaveChambre
-    const handleSaveChambre = (chambreData) => {
-        if (chambreData.id) {
-            // Mise à jour
-            setChambres(chambres.map(item =>
-                item.id === chambreData.id ? chambreData : item
-            ));
-        } else {
-            // Ajout
-            const newChambre = {
-                ...chambreData,
-                id: `chambre-${Date.now()}`, // Ici vous êtes sûr que l'ID est une chaîne
-                statut: chambreData.occupants?.length > 0 ? 'occupée' : 'libre'
-            };
-            setChambres([...chambres, newChambre]);
+    const handleDelete = async (id) => {
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette chambre ?')) {
+            setLoading(true);
+            try {
+                await deleteChambre(id);
+                setNotification({
+                    show: true,
+                    message: 'Chambre supprimée avec succès',
+                    type: 'success'
+                });
+                // Recharger les chambres après la suppression
+                loadChambres();
+            } catch (err) {
+                setError('Erreur lors de la suppression de la chambre.');
+                setNotification({
+                    show: true,
+                    message: 'Erreur lors de la suppression de la chambre',
+                    type: 'error'
+                });
+            } finally {
+                setLoading(false);
+            }
         }
-        setModalOpen(false);
     };
 
-    const handleAssignOccupants = (occupantIds) => {
-        setChambres(chambres.map(item => {
-            if (item.id === currentChambre.id) {
-                return {
-                    ...item,
-                    occupants: occupantIds,
-                    statut: occupantIds.length > 0 ? 'occupée' : 'libre'
-                };
+    const handleSaveChambre = async (chambreData) => {
+        setLoading(true);
+        try {
+            if (chambreData.id) {
+                // Mise à jour d'une chambre existante
+                await updateChambre(chambreData.id, chambreData);
+                setNotification({
+                    show: true,
+                    message: 'Chambre mise à jour avec succès',
+                    type: 'success'
+                });
+            } else {
+                // Création d'une nouvelle chambre
+                await createChambre(chambreData);
+                setNotification({
+                    show: true,
+                    message: 'Chambre ajoutée avec succès',
+                    type: 'success'
+                });
             }
-            return item;
-        }));
-        setShowAssignModal(false);
+            // Recharger les chambres après modification
+            loadChambres();
+            setModalOpen(false);
+        } catch (err) {
+            console.error('Erreur lors de la sauvegarde:', err);
+            setError('Erreur lors de la sauvegarde de la chambre.');
+            setNotification({
+                show: true,
+                message: 'Erreur lors de la sauvegarde de la chambre',
+                type: 'error'
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // Filtrage et tri des chambres
-    const filteredChambres = chambres
-        .filter(chambre => {
-            if (filterStatus === 'all') return true;
-            return chambre.statut === filterStatus;
-        })
-        .filter(chambre =>
-            chambre.numero.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .sort((a, b) => {
-            switch (sortOption) {
-                case 'capacite':
-                    return b.capacite - a.capacite;
-                case 'statut':
-                    return a.statut.localeCompare(b.statut);
-                case 'numero':
-                default:
-                    // Tri numérique si le numéro contient des chiffres
-                    const numA = parseInt(a.numero.replace(/\D/g, ''));
-                    const numB = parseInt(b.numero.replace(/\D/g, ''));
-                    return numA - numB;
-            }
-        });
+    const handleAssignOccupants = async (occupantIds) => {
+        setLoading(true);
+        try {
+            await assignOccupantsToRoom(currentChambre.id || currentChambre._id, occupantIds);
+            setNotification({
+                show: true,
+                message: 'Occupants assignés avec succès',
+                type: 'success'
+            });
+            // Recharger les chambres après l'assignation
+            loadChambres();
+            // Incrémenter le compteur de rafraîchissement
+            setRefreshTrigger(prev => prev + 1);
+            setShowAssignModal(false);
+        } catch (err) {
+            console.error('Erreur lors de l\'assignation des occupants:', err);
+            setError('Erreur lors de l\'assignation des occupants.');
+            setNotification({
+                show: true,
+                message: 'Erreur lors de l\'assignation des occupants',
+                type: 'error'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    // Statistiques
+    // Cacher la notification après 3 secondes
+    useEffect(() => {
+        if (notification.show) {
+            const timer = setTimeout(() => {
+                setNotification({ ...notification, show: false });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+
+    // Calculer les statistiques à partir des chambres chargées
     const stats = {
         total: chambres.length,
         occupees: chambres.filter(c => c.statut === 'occupée').length,
         libres: chambres.filter(c => c.statut === 'libre').length,
         tauxOccupation: chambres.length > 0
             ? Math.round((chambres.filter(c => c.statut === 'occupée').length / chambres.length) * 100)
-            : 0
+            : 0,
+        parEtage: [1, 2, 3, 4].map(etage => ({
+            etage: etage,
+            total: chambres.filter(c => parseInt(c.etage) === etage).length,
+            occupees: chambres.filter(c => parseInt(c.etage) === etage && c.statut === 'occupée').length
+        }))
     };
 
+    // Filtrage côté client (en complément du filtrage côté serveur)
+    const filteredChambres = chambres;
+
+    // Le reste de votre code JSX reste inchangé...
     return (
         <div className="space-y-8 pb-8">
+            {/* Notification */}
+            {notification.show && (
+                <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+                    notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                } text-white`}>
+                    {notification.message}
+                </div>
+            )}
+            
             {/* En-tête et contrôles principaux */}
             <div className="relative">
                 {/* Header premium avec glassmorphism et design élégant */}
@@ -265,7 +385,7 @@ const Chambres = () => {
                                                     <AdjustmentsIcon className="h-4 w-4" />
                                                     <span className="hidden sm:inline">Trier</span>
                                                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        <path fillRule="evenodd" d="M5.293 7.293a1 1 011.414 0L10 10.586l3.293-3.293a1 1 111.414 1.414l-4 4a1 1 01-1.414 0l-4-4a1 1 010-1.414z" clipRule="evenodd" />
                                                     </svg>
                                                 </button>
 
@@ -274,7 +394,8 @@ const Chambres = () => {
                                                         {[
                                                             { id: 'numero', label: 'Numéro' },
                                                             { id: 'capacite', label: 'Capacité' },
-                                                            { id: 'statut', label: 'Statut' }
+                                                            { id: 'statut', label: 'Statut' },
+                                                            { id: 'etage', label: 'Étage' }
                                                         ].map((option) => (
                                                             <button
                                                                 key={option.id}
@@ -287,7 +408,7 @@ const Chambres = () => {
                                                                 {option.label}
                                                                 {sortOption === option.id && (
                                                                     <svg className="ml-auto h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 010 1.414l-8 8a1 1 01-1.414 0l-4-4a1 1 010-1.414z" clipRule="evenodd" />
                                                                     </svg>
                                                                 )}
                                                             </button>
@@ -295,11 +416,41 @@ const Chambres = () => {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Filtres par étage */}
+                                            <div className="inline-flex overflow-hidden rounded-lg bg-white/5 border border-white/10 ml-2">
+                                                <button
+                                                    onClick={() => setFilterEtage('all')}
+                                                    className={`px-3 py-2 text-sm relative ${filterEtage === 'all'
+                                                        ? 'text-white'
+                                                        : 'text-blue-200/70 hover:text-blue-100'}`}
+                                                >
+                                                    {filterEtage === 'all' && (
+                                                        <span className="absolute inset-0 bg-cyan-500/20 border-y border-cyan-400/30"></span>
+                                                    )}
+                                                    <span className="relative z-10">Tous étages</span>
+                                                </button>
+                                                {[1, 2, 3, 4].map((etage) => (
+                                                    <button
+                                                        key={etage}
+                                                        onClick={() => setFilterEtage(etage)}
+                                                        className={`px-3 py-2 text-sm relative ${filterEtage === etage
+                                                            ? 'text-white'
+                                                            : 'text-blue-200/70 hover:text-blue-100'
+                                                            } border-l border-white/10`}
+                                                    >
+                                                        {filterEtage === etage && (
+                                                            <span className="absolute inset-0 bg-cyan-500/20 border-y border-cyan-400/30"></span>
+                                                        )}
+                                                        <span className="relative z-10">Étage {etage}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
 
                                     {/* Filtres actifs */}
-                                    {(filterStatus !== 'all' || searchTerm) && (
+                                    {(filterStatus !== 'all' || searchTerm || filterEtage !== 'all') && (
                                         <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
                                             <span className="text-xs text-blue-200/60">Filtres actifs:</span>
 
@@ -311,7 +462,7 @@ const Chambres = () => {
                                                         className="ml-1.5 text-blue-300/70 hover:text-blue-200"
                                                     >
                                                         <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 011.414 0L10 8.586l4.293-4.293a1 1 111.414 1.414L11.414 10l4.293 4.293a1 1 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 01-1.414-1.414L8.586 10 4.293 5.707a1 1 010-1.414z" clipRule="evenodd" />
                                                         </svg>
                                                     </button>
                                                 </span>
@@ -325,7 +476,22 @@ const Chambres = () => {
                                                         className="ml-1.5 text-blue-300/70 hover:text-blue-200"
                                                     >
                                                         <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 011.414 0L10 8.586l4.293-4.293a1 1 111.414 1.414L11.414 10l4.293 4.293a1 1 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 01-1.414-1.414L8.586 10 4.293 5.707a1 1 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            )}
+
+                                            {/* Nouveau: Filtre par étage */}
+                                            {filterEtage !== 'all' && (
+                                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-slate-700/50 text-blue-100 border border-white/5">
+                                                    Étage {filterEtage}
+                                                    <button
+                                                        onClick={() => setFilterEtage('all')}
+                                                        className="ml-1.5 text-blue-300/70 hover:text-blue-200"
+                                                    >
+                                                        <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 011.414 0L10 8.586l4.293-4.293a1 1 111.414 1.414L11.414 10l4.293 4.293a1 1 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 01-1.414-1.414L8.586 10 4.293 5.707a1 1 010-1.414z" clipRule="evenodd" />
                                                         </svg>
                                                     </button>
                                                 </span>
@@ -355,6 +521,7 @@ const Chambres = () => {
                                 onDelete={() => handleDelete(chambre.id)}
                                 onAssign={() => handleOpenAssignModal(chambre)}
                                 residents={[...mockEtudiants, ...mockStagiaires]}
+                                refreshTrigger={refreshTrigger}
                             />
                         ))}
 
@@ -490,7 +657,7 @@ const Chambres = () => {
                                                     title="Supprimer"
                                                 >
                                                     <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 00-1-1h-4a1 1 00-1 1v3M4 7h16" />
                                                     </svg>
                                                 </button>
                                             </div>
@@ -526,7 +693,6 @@ const Chambres = () => {
                 onClose={() => setShowAssignModal(false)}
                 chambre={currentChambre}
                 onAssign={handleAssignOccupants}
-                residents={[...mockEtudiants, ...mockStagiaires]}
             />
 
             <style jsx>{`
@@ -542,6 +708,24 @@ const Chambres = () => {
           @apply bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 border border-white/30;
         }
       `}</style>
+
+            {/* Affichage du chargement */}
+            {loading && (
+                <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
+                    <div className="bg-white p-4 rounded-lg shadow-lg flex items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+                        <p>Chargement en cours...</p>
+                    </div>
+                </div>
+            )}
+            
+            {/* Affichage des erreurs */}
+            {error && (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+                    <p className="font-bold">Erreur</p>
+                    <p>{error}</p>
+                </div>
+            )}
         </div>
     );
 };

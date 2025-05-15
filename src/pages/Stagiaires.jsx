@@ -12,6 +12,17 @@ import StagiaireModal from '../components/stagiaires/StagiaireModal';
 import AddIntern from '../components/stagiaires/AddIntern';
 import AddExternIntern from '../components/stagiaires/AddExternIntern';
 
+// Assurez-vous d'exporter cette fonction helper et de l'utiliser dans StagiairesList
+export const getDisplayableChambre = (chambre) => {
+  if (!chambre) return "Non assignée";
+  
+  if (typeof chambre === 'object') {
+    return chambre.numero ? `N°${chambre.numero}` : "Non assignée";
+  }
+  
+  return chambre.toString();
+};
+
 const Stagiaires = () => {
   const [stagiaires, setStagiaires] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -135,14 +146,18 @@ const Stagiaires = () => {
   useEffect(() => {
     let result = [...stagiaires];
     
-    // Filtrage
     if (searchTerm) {
-      result = result.filter(stagiaire => 
-        stagiaire.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stagiaire.chambre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stagiaire.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stagiaire.entreprise.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      result = result.filter(stagiaire => {
+        // Traiter le cas où chambre est un objet
+        const chambreStr = typeof stagiaire.chambre === 'object' 
+          ? stagiaire.chambre?.numero || '' 
+          : stagiaire.chambre || '';
+        
+        return stagiaire.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          chambreStr.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+          stagiaire.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          stagiaire.entreprise.toLowerCase().includes(searchTerm.toLowerCase());
+      });
     }
     
     // Filtrage par statut et chambre
@@ -274,6 +289,17 @@ const Stagiaires = () => {
   const getChambreInfo = (chambreNumero) => {
     return mockChambres.find(c => c.numero === chambreNumero) || { numero: 'Non assignée', capacite: 0 };
   };
+
+  // Fonction pour obtenir les informations de chambre à afficher de manière sécurisée
+const getDisplayableChambre = (chambre) => {
+  if (!chambre) return "Non assignée";
+  
+  if (typeof chambre === 'object') {
+    return chambre.numero ? `N°${chambre.numero}` : "Non assignée";
+  }
+  
+  return chambre.toString();
+};
 
   // Toggles du tri
   const toggleSort = (field) => {
@@ -579,15 +605,15 @@ const Stagiaires = () => {
           isEditing={currentStagiaire !== null} // Indiquer si c'est une édition
         />
       ) : viewProfileId ? (
-        // Affichage du profil reste inchangé
-        <StagiaireProfile
-          stagiaire={getStagiaireById(viewProfileId)}
-          chambre={getChambreInfo(getStagiaireById(viewProfileId).chambre)}
-          animation={animation}
-          onBack={() => setViewProfileId(null)}
-          onEdit={() => handleEdit(getStagiaireById(viewProfileId))} // Utilisation de handleEdit ici aussi
-          onDelete={() => handleOpenDeleteModal(viewProfileId)}
-        />
+        // Dans la partie qui passe les props à StagiaireProfile
+<StagiaireProfile
+  stagiaire={getStagiaireById(viewProfileId)}
+  chambre={getDisplayableChambre(getStagiaireById(viewProfileId)?.chambre)}
+  animation={animation}
+  onBack={() => setViewProfileId(null)}
+  onEdit={() => handleEdit(getStagiaireById(viewProfileId))}
+  onDelete={() => handleOpenDeleteModal(viewProfileId)}
+/>
       ) : (
         <>
           <StagiaireHeader 
@@ -625,6 +651,7 @@ const Stagiaires = () => {
             filters={filters}
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
+            getDisplayableChambre={getDisplayableChambre}
           />
         </>
       )}

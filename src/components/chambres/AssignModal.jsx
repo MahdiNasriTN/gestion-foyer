@@ -1,175 +1,226 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, SearchIcon } from '@heroicons/react/outline';
+import { Dialog } from '@headlessui/react';
+import { fetchAvailableStagiaires, fetchChambreOccupants } from '../../services/api';
 
-const AssignModal = ({ isOpen, onClose, chambre, onAssign, residents }) => {
-  const [selectedResidents, setSelectedResidents] = useState([]);
+const AssignModal = ({ isOpen, onClose, chambre, onAssign }) => {
+  const [selectedOccupantIds, setSelectedOccupantIds] = useState([]);
+  const [availableStagiaires, setAvailableStagiaires] = useState([]);
+  const [currentOccupants, setCurrentOccupants] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredResidents, setFilteredResidents] = useState([]);
-  
-  useEffect(() => {
-    if (chambre) {
-      setSelectedResidents(chambre.occupants || []);
-    }
-  }, [chambre]);
-  
-  useEffect(() => {
-    if (!residents) return;
-    
-    const filtered = residents.filter(resident => 
-      resident.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (resident.prenom && resident.prenom.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-    
-    setFilteredResidents(filtered);
-  }, [residents, searchTerm]);
-  
-  const toggleResident = (id) => {
-    if (selectedResidents.includes(id)) {
-      setSelectedResidents(selectedResidents.filter(resId => resId !== id));
-    } else {
-      if (selectedResidents.length < chambre.capacite) {
-        setSelectedResidents([...selectedResidents, id]);
-      }
-    }
-  };
-  
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onAssign(selectedResidents);
-  };
-  
-  if (!isOpen || !chambre) return null;
 
-  const maxOccupantsReached = selectedResidents.length >= chambre.capacite;
+  // Charger les stagiaires disponibles et les occupants actuels
+  useEffect(() => {
+    if (isOpen && chambre) {
+      setIsLoading(true);
+      setError(null);
+      
+      // Fonction pour charger les données
+      const loadData = async () => {
+        try {
+          // Charger les occupants actuels de la chambre
+          const occupantsResponse = await fetchChambreOccupants(chambre.id || chambre._id);
+          const occupants = occupantsResponse?.data || [];
+          setCurrentOccupants(occupants);
+          
+          // Présélectionner les occupants actuels
+          setSelectedOccupantIds(occupants.map(o => o._id));
+          
+          // Charger tous les stagiaires disponibles
+          const stagiaireResponse = await fetchAvailableStagiaires();
+          
+          // Vérifier la structure de la réponse et ajuster en conséquence
+          let stagiaires = [];
+          if (stagiaireResponse?.data?.stagiaires) {
+            // Si les données sont dans data.stagiaires
+            stagiaires = stagiaireResponse.data.stagiaires;
+          } else if (stagiaireResponse?.data) {
+            // Si les données sont directement dans data
+            stagiaires = stagiaireResponse.data;
+          } else {
+            // Fallback pour tout autre format
+            stagiaires = stagiaireResponse || [];
+          }
+          
+          // Inclure les occupants actuels dans la liste des disponibles
+          const availableForSelection = [...stagiaires];
+          
+          // Ajouter les occupants actuels s'ils ne sont pas déjà dans la liste
+          occupants.forEach(occupant => {
+            if (!availableForSelection.some(s => s._id === occupant._id)) {
+              availableForSelection.push(occupant);
+            }
+          });
+          
+          setAvailableStagiaires(availableForSelection);
+        } catch (err) {
+          console.error('Error loading data for assignment modal:', err);
+          setError('Impossible de charger les données des stagiaires.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      loadData();
+    }
+  }, [isOpen, chambre]);
+
+  // Réinitialiser tout à la fermeture
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedOccupantIds([]);
+      setSearchTerm('');
+      setError(null);
+    }
+  }, [isOpen]);
+
+  // Gérer la sélection/désélection d'un occupant
+  const toggleOccupant = (stagiaireId) => {
+    if (selectedOccupantIds.includes(stagiaireId)) {
+      setSelectedOccupantIds(selectedOccupantIds.filter(id => id !== stagiaireId));
+    } else {
+      // Vérifier si l'ajout dépasse la capacité de la chambre
+      if (selectedOccupantIds.length >= (chambre?.capacite || 1)) {
+        alert(`Cette chambre ne peut pas accueillir plus de ${chambre.capacite} personnes.`);
+        return;
+      }
+      setSelectedOccupantIds([...selectedOccupantIds, stagiaireId]);
+    }
+  };
+
+  // Soumettre les occupants sélectionnés
+  const handleSubmit = () => {
+    onAssign(selectedOccupantIds);
+  };
+
+  // Filtrage des stagiaires par terme de recherche
+  const filteredStagiaires = searchTerm
+    ? availableStagiaires.filter(stagiaire =>
+        `${stagiaire.firstName} ${stagiaire.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stagiaire.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stagiaire.phoneNumber?.includes(searchTerm)
+      )
+    : availableStagiaires;
 
   return (
-    <div className="fixed z-50 inset-0 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-          <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-        </div>
+    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+      <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm" aria-hidden="true" />
+      
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+            <Dialog.Title className="text-lg font-semibold text-gray-900">
+              Assigner des résidents à la chambre {chambre?.numero}
+            </Dialog.Title>
+            
+            <div className="mt-2">
+              <p className="text-sm text-gray-600">
+                Cette chambre peut accueillir jusqu'à {chambre?.capacite || '?'} personnes. 
+                {selectedOccupantIds.length > 0 && ` ${selectedOccupantIds.length} sur ${chambre?.capacite || '?'} places sont actuellement attribuées.`}
+              </p>
+            </div>
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        
-        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="absolute right-4 top-4 z-10">
-            <button
-              type="button"
-              className="text-gray-400 bg-white rounded-full p-1 hover:text-gray-500 focus:outline-none"
-              onClick={onClose}
-            >
-              <XIcon className="h-6 w-6" />
-            </button>
-          </div>
-          
-          {/* En-tête */}
-          <div className="bg-primary text-white px-6 py-5">
-            <h3 className="text-lg leading-6 font-medium">
-              Assigner des résidents à la chambre
-            </h3>
-            <p className="text-blue-100 text-sm mt-1">
-              Chambre {chambre.numero} - Capacité: {chambre.capacite}
-            </p>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="px-6 pt-5 pb-6">
-            <div className="relative mb-5">
-              <SearchIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un résident..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-              />
-            </div>
-            
-            <div className="mb-4 flex items-center justify-between text-sm text-gray-500">
-              <span>Occupants sélectionnés: {selectedResidents.length}/{chambre.capacite}</span>
-              {selectedResidents.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedResidents([])}
-                  className="text-primary hover:text-primary-dark"
-                >
-                  Tout désélectionner
-                </button>
-              )}
-            </div>
-            
-            <div className="max-h-60 overflow-y-auto mb-6 bg-gray-50 rounded-lg border border-gray-200">
-              {filteredResidents.length > 0 ? (
-                <ul className="divide-y divide-gray-200">
-                  {filteredResidents.map((resident) => {
-                    const isSelected = selectedResidents.includes(resident.id);
-                    
-                    return (
-                      <li key={resident.id}>
-                        <button
-                          type="button"
-                          onClick={() => toggleResident(resident.id)}
-                          disabled={maxOccupantsReached && !isSelected}
-                          className={`w-full flex items-center py-2 px-3 hover:bg-gray-100 transition-colors ${
-                            isSelected ? 'bg-primary/5 hover:bg-primary/10' : ''
-                          } ${maxOccupantsReached && !isSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          {/* Avatar */}
-                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            isSelected ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {resident.nom.charAt(0)}
-                          </div>
-                          
-                          {/* Infos résident */}
-                          <div className="ml-3 flex-1 text-left">
-                            <p className="text-sm font-medium text-gray-900">{resident.nom} {resident.prenom}</p>
-                            <p className="text-xs text-gray-500">{resident.type || 'Résident'}</p>
-                          </div>
-                          
-                          {/* Case à cocher */}
-                          <div className={`h-5 w-5 border rounded ${
-                            isSelected 
-                              ? 'bg-primary border-primary text-white' 
-                              : 'border-gray-300'
-                          }`}>
-                            {isSelected && (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mx-auto mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <div className="py-8 text-center">
-                  <p className="text-gray-500">Aucun résident trouvé</p>
-                  <p className="text-sm text-gray-400">Essayez une autre recherche</p>
+            {isLoading ? (
+              <div className="my-8 flex justify-center">
+                <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-blue-500 rounded-full"></div>
+              </div>
+            ) : error ? (
+              <div className="my-4 p-3 bg-red-50 text-red-700 rounded-lg">
+                {error}
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 mb-3">
+                  <input
+                    type="text"
+                    placeholder="Rechercher un stagiaire..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
-              )}
-            </div>
-            
-            <div className="pt-4 border-t border-gray-200 flex justify-end space-x-3">
+                
+                <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                  <ul className="divide-y divide-gray-200">
+                    {filteredStagiaires.length === 0 ? (
+                      <li className="p-4 text-center text-gray-500">
+                        Aucun stagiaire disponible trouvé
+                      </li>
+                    ) : (
+                      filteredStagiaires.map((stagiaire) => (
+                        <li 
+                          key={stagiaire._id} 
+                          className={`p-3 flex items-center hover:bg-gray-50 cursor-pointer ${
+                            selectedOccupantIds.includes(stagiaire._id) ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => toggleOccupant(stagiaire._id)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedOccupantIds.includes(stagiaire._id)}
+                            onChange={() => {}} // Géré par le onClick du parent
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                          />
+                          
+                          <div className="ml-3 flex-1">
+                            <div className="flex items-center">
+                              {stagiaire.profilePhoto ? (
+                                <img 
+                                  src={stagiaire.profilePhoto} 
+                                  alt={stagiaire.firstName} 
+                                  className="w-8 h-8 object-cover rounded-full mr-3"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center mr-3">
+                                  {stagiaire.firstName?.charAt(0)?.toUpperCase() || '?'}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {stagiaire.firstName} {stagiaire.lastName}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {stagiaire.email || 'Pas d\'email'} • {stagiaire.phoneNumber || 'Pas de téléphone'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {currentOccupants.some(o => o._id === stagiaire._id) && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                              Occupant actuel
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              </>
+            )}
+
+            <div className="mt-6 flex justify-end space-x-3">
               <button
                 type="button"
-                className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                 onClick={onClose}
               >
                 Annuler
               </button>
               <button
-                type="submit"
-                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none"
+                onClick={handleSubmit}
+                disabled={isLoading}
               >
-                Confirmer
+                Assigner
               </button>
             </div>
-          </form>
+          </Dialog.Panel>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };
 

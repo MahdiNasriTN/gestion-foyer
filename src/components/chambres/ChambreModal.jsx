@@ -63,9 +63,18 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
     });
   };
 
+  // Modifier la fonction handleSubmit pour adapter les données au format attendu par l'API
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Adapter les noms de champs si nécessaire pour qu'ils correspondent au modèle backend
+    const submitData = {
+      ...formData,
+      equipements: formData.equipements, // Assurez-vous que ce champ est nommé 'amenities' côté backend
+      statut: formData.statut === 'occupée' ? 'occupee' : 'disponible', // Adapter le format si nécessaire
+    };
+    
+    onSave(submitData);
   };
   
   if (!isOpen) return null;
@@ -126,11 +135,12 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
                   name="etage"
                   value={formData.etage}
                   onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                 >
-                  {[1, 2, 3, 4, 5, 6].map(n => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
+                  <option value={1}>Étage 1</option>
+                  <option value={2}>Étage 2</option>
+                  <option value={3}>Étage 3</option>
+                  <option value={4}>Étage 4</option>
                 </select>
               </div>
             </div>

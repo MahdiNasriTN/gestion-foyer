@@ -214,4 +214,117 @@ export const getStagiaireById = async (id) => {
   }
 };
 
-// Add similar functions for chambres and kitchen tasks
+// Ajouter cette fonction pour récupérer les stagiaires disponibles pour l'assignation
+export const fetchAvailableStagiaires = async () => {
+  try {
+    const response = await API.get('/api/stagiaires?chambreStatus=disponible');
+    return response.data; // Ne pas transformer les données ici
+  } catch (error) {
+    console.error('Error fetching available stagiaires:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Ajouter cette fonction pour récupérer les occupants actuels d'une chambre
+export const fetchChambreOccupants = async (chambreId) => {
+  try {
+    const response = await API.get(`/api/chambres/${chambreId}/occupants`);
+    return response.data; // Ne pas transformer les données ici
+  } catch (error) {
+    console.error('Error fetching chambre occupants:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Ajouter ces fonctions à votre fichier api.js existant
+
+// Récupérer toutes les chambres avec filtres optionnels
+export const fetchChambres = async (filters = {}) => {
+  try {
+    // Construction des paramètres de requête à partir des filtres
+    const queryParams = new URLSearchParams();
+    
+    if (filters.status && filters.status !== 'all') {
+      queryParams.append('status', filters.status);
+    }
+    
+    if (filters.etage && filters.etage !== 'all') {
+      queryParams.append('etage', filters.etage);
+    }
+    
+    if (filters.search) {
+      queryParams.append('search', filters.search);
+    }
+    
+    if (filters.sortBy) {
+      queryParams.append('sortBy', filters.sortBy);
+      if (filters.sortOrder) {
+        queryParams.append('sortOrder', filters.sortOrder);
+      }
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/api/chambres${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await API.get(url);
+    return response;
+  } catch (error) {
+    console.error('Error fetching chambres:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Récupérer une chambre par son ID
+export const getChambreById = async (id) => {
+  try {
+    const response = await API.get(`/api/chambres/${id}`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching chambre by ID:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Créer une nouvelle chambre
+export const createChambre = async (chambreData) => {
+  try {
+    const response = await API.post('/api/chambres', chambreData);
+    return response;
+  } catch (error) {
+    console.error('Error creating chambre:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Mettre à jour une chambre existante
+export const updateChambre = async (id, chambreData) => {
+  try {
+    const response = await API.put(`/api/chambres/${id}`, chambreData);
+    return response;
+  } catch (error) {
+    console.error('Error updating chambre:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Supprimer une chambre
+export const deleteChambre = async (id) => {
+  try {
+    const response = await API.delete(`/api/chambres/${id}`);
+    return response;
+  } catch (error) {
+    console.error('Error deleting chambre:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Assigner des occupants à une chambre
+export const assignOccupantsToRoom = async (roomId, occupantIds) => {
+  try {
+    const response = await API.post(`/api/chambres/${roomId}/occupants`, { occupantIds });
+    return response.data;
+  } catch (error) {
+    console.error('Error assigning occupants:', error);
+    throw error.response?.data || error;
+  }
+};
