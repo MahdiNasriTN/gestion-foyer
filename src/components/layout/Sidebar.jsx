@@ -79,15 +79,7 @@ const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
       description: 'Vue d\'ensemble et statistiques',
       color: 'from-sky-500 to-blue-600',
     },
-    { 
-      name: 'Gestion des Chambres', 
-      path: '/chambres', 
-      icon: <OfficeBuildingIcon className="h-5 w-5" />,
-      activeIcon: <OfficeBuildingIconSolid className="h-5 w-5" />,
-      badge: { count: 2, color: 'green' },
-      description: 'Gestion des chambres et occupations',
-      color: 'from-emerald-500 to-green-600',
-    },
+    
     { 
       name: 'Gestion des Stagiaires', 
       path: '/stagiaires', 
@@ -105,6 +97,15 @@ const Sidebar = ({ onLogout, onNavigateToEtudiants }) => {
       badge: null,
       description: 'Gestion du personnel',
       color: 'from-indigo-500 to-blue-600',
+    },
+    { 
+      name: 'Gestion des Chambres', 
+      path: '/chambres', 
+      icon: <OfficeBuildingIcon className="h-5 w-5" />,
+      activeIcon: <OfficeBuildingIconSolid className="h-5 w-5" />,
+      badge: { count: 2, color: 'green' },
+      description: 'Gestion des chambres et occupations',
+      color: 'from-emerald-500 to-green-600',
     },
     { 
       name: 'Gestion de la Cuisine', 

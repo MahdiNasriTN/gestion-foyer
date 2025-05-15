@@ -564,29 +564,29 @@ const StagiairesList = ({
                 </button>
                 <button
                   className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                    localFilters.gender === 'homme' 
+                    localFilters.gender === 'garcon' 
                       ? 'bg-blue-100 text-blue-700 font-medium' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                  onClick={() => handleFilterChange('gender', 'homme')}
+                  onClick={() => handleFilterChange('gender', 'garcon')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Homme
+                  garcon
                 </button>
                 <button
                   className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
-                    localFilters.gender === 'femme' 
+                    localFilters.gender === 'fille' 
                       ? 'bg-pink-100 text-pink-700 font-medium' 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                  onClick={() => handleFilterChange('gender', 'femme')}
+                  onClick={() => handleFilterChange('gender', 'fille')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Femme
+                  fille
                 </button>
               </div>
             </div>

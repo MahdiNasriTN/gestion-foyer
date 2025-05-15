@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/outline';
 import { login } from '../services/api';
 
-const Login = ({ setAuthenticated }) => {
+const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
     email: '',
     password: '',
@@ -47,8 +47,14 @@ const Login = ({ setAuthenticated }) => {
     setIsLoading(true);
     
     try {
-      await login(credentials);
-      setAuthenticated(true);
+      const response = await login(credentials);
+      // Get the token and user data from the response
+      const { token, data } = response;
+      
+      // Call the onLogin function from props instead of setAuthenticated
+      onLogin(data.user, token);
+      
+      // Navigate to dashboard
       navigate('/');
     } catch (err) {
       setError(err.message || 'Une erreur s\'est produite. Veuillez réessayer.');
@@ -92,7 +98,7 @@ const Login = ({ setAuthenticated }) => {
             >
               <h2 className="text-3xl font-bold mb-8 mt-12">Bienvenue dans votre espace de gestion</h2>
               <p className="text-blue-100 max-w-xs mb-12">
-                Simplifiez la gestion quotidienne des étudiants, des chambres, des repas et des activités
+                Simplifiez la gestion quotidienne des stagiaires, des chambres, des repas et des activités
               </p>
             </div>
             

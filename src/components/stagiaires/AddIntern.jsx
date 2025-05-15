@@ -124,7 +124,7 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
       // Ajouter les champs sexe et email requis par le modèle MongoDB
       const submissionData = {
         ...formData,
-        sexe: formData.sexe || 'homme', // Valeur par défaut
+        sexe: formData.sexe || 'garcon', // Valeur par défaut
         email: formData.email || `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`,
         dateArrivee: formData.trainingPeriodFrom,
         dateDepart: formData.trainingPeriodTo,
@@ -181,7 +181,7 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
     hobby: 'Football, Lecture, Voyages',
     trainingPeriodFrom: '2023-09-01',
     trainingPeriodTo: '2024-06-30',
-    sexe: 'homme'
+    sexe: 'garcon'
   };
   
   setFormData(testData);
@@ -498,7 +498,6 @@ const AddIntern = ({ onCancel, onSave, initialData = null, isEditing = false }) 
                 value={formData.cinNumber}
                 onChange={handleChange}
                 placeholder="Numéro CIN"
-                required
                 className={inputClass}
               />
             </div>
