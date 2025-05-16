@@ -20,6 +20,7 @@ import {
     deleteChambre, 
     assignOccupantsToRoom 
 } from '../services/api';
+import DeleteChambreModal from '../components/chambres/DeleteChambreModal';
 
 const Chambres = () => {
     // États
@@ -41,6 +42,8 @@ const Chambres = () => {
         type: ''
     });
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [chambreToDelete, setChambreToDelete] = useState(null);
 
     // Charger les chambres depuis l'API
     const loadChambres = async () => {
@@ -63,7 +66,8 @@ const Chambres = () => {
                 id: chambre._id || chambre.id,
                 // Adapter les champs pour correspondre à notre modèle frontend si nécessaire
                 statut: chambre.statut || 'libre',
-                occupants: chambre.occupants || []
+                occupants: chambre.occupants || [],
+                nombreLits: chambre.nombreLits || chambre.capacite // Fallback sur capacité si non défini
             }));
             
             setChambres(processedChambres);
@@ -108,29 +112,40 @@ const Chambres = () => {
         setShowAssignModal(true);
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette chambre ?')) {
-            setLoading(true);
-            try {
-                await deleteChambre(id);
-                setNotification({
-                    show: true,
-                    message: 'Chambre supprimée avec succès',
-                    type: 'success'
-                });
-                // Recharger les chambres après la suppression
-                loadChambres();
-            } catch (err) {
-                setError('Erreur lors de la suppression de la chambre.');
-                setNotification({
-                    show: true,
-                    message: 'Erreur lors de la suppression de la chambre',
-                    type: 'error'
-                });
-            } finally {
-                setLoading(false);
-            }
+    const handleOpenDeleteModal = (chambre) => {
+        setChambreToDelete(chambre);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        setLoading(true);
+        try {
+            await deleteChambre(chambreToDelete.id);
+            setNotification({
+                show: true,
+                message: 'Chambre supprimée avec succès',
+                type: 'success'
+            });
+            // Recharger les chambres après la suppression
+            loadChambres();
+        } catch (err) {
+            console.error('Erreur lors de la suppression:', err);
+            setError('Erreur lors de la suppression de la chambre.');
+            setNotification({
+                show: true,
+                message: 'Erreur lors de la suppression de la chambre',
+                type: 'error'
+            });
+        } finally {
+            setLoading(false);
+            setShowDeleteModal(false);
+            setChambreToDelete(null);
         }
+    };
+    
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setChambreToDelete(null);
     };
 
     const handleSaveChambre = async (chambreData) => {
@@ -214,6 +229,7 @@ const Chambres = () => {
         tauxOccupation: chambres.length > 0
             ? Math.round((chambres.filter(c => c.statut === 'occupée').length / chambres.length) * 100)
             : 0,
+        totalLits: chambres.reduce((sum, chambre) => sum + (chambre.nombreLits || chambre.capacite), 0),
         parEtage: [1, 2, 3, 4].map(etage => ({
             etage: etage,
             total: chambres.filter(c => parseInt(c.etage) === etage).length,
@@ -518,7 +534,7 @@ const Chambres = () => {
                                 key={chambre.id}
                                 chambre={chambre}
                                 onEdit={() => handleOpenModal(chambre)}
-                                onDelete={() => handleDelete(chambre.id)}
+                                onDelete={() => handleOpenDeleteModal(chambre)}
                                 onAssign={() => handleOpenAssignModal(chambre)}
                                 residents={[...mockEtudiants, ...mockStagiaires]}
                                 refreshTrigger={refreshTrigger}
@@ -652,7 +668,7 @@ const Chambres = () => {
                                                     </svg>
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(chambre.id)}
+                                                    onClick={() => handleOpenDeleteModal(chambre)}
                                                     className="text-red-600 hover:text-red-900 transition-colors"
                                                     title="Supprimer"
                                                 >
@@ -693,6 +709,13 @@ const Chambres = () => {
                 onClose={() => setShowAssignModal(false)}
                 chambre={currentChambre}
                 onAssign={handleAssignOccupants}
+            />
+
+            <DeleteChambreModal
+                isOpen={showDeleteModal}
+                onClose={cancelDelete}
+                onConfirm={confirmDelete}
+                chambre={chambreToDelete}
             />
 
             <style jsx>{`

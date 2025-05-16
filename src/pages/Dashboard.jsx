@@ -22,7 +22,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 // API base URL from environment
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
 
 // Composant de carte statistique amélioré
 const StatCard = ({ title, value, icon, color, change, changeType, onClick }) => {

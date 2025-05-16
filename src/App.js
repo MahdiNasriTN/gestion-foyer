@@ -8,10 +8,12 @@ import Etudiants from './pages/Etudiants';
 import Stagiaires from './pages/Stagiaires';
 import Cuisine from './pages/Cuisine';
 import Layout from './components/layout/Layout';
+import Personnel from './pages/Personnel';
 import ProtectedRoute from './components/ProtectedRoute';
+import Documentation from './pages/Documentation';
 
 // API base URL from environment
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -134,6 +136,18 @@ function App() {
             </Layout>
           </ProtectedRoute>
         } />
+        <Route path="/personnel" element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Layout user={user} onLogout={handleLogout}>
+              <Personnel />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/documentation" element={<Documentation />} />
+        <Route path="/documentation/:sectionId" element={<Documentation />} />
+        <Route path="/documentation/:sectionId/:subsectionId" element={<Documentation />} />
+        
+        {/* Redirect any unknown routes to the dashboard */}
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

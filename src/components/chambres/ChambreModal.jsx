@@ -10,6 +10,7 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
     id: '',
     numero: '',
     capacite: 1,
+    nombreLits: 1, // Ajout du champ nombreLits
     etage: 1,
     type: 'standard',
     equipements: [],
@@ -23,6 +24,7 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
         id: chambre.id || '',
         numero: chambre.numero || '',
         capacite: chambre.capacite || 1,
+        nombreLits: chambre.nombreLits || chambre.capacite || 1, // Initialiser avec nombreLits ou capacité
         etage: chambre.etage || 1,
         type: chambre.type || 'standard',
         equipements: chambre.equipements || [],
@@ -61,6 +63,14 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
         };
       }
     });
+  };
+
+  // Fonction pour modifier le nombre de lits
+  const handleNombreLitsChange = (delta) => {
+    setFormData(prev => ({
+      ...prev,
+      nombreLits: Math.max(1, prev.nombreLits + delta)
+    }));
   };
 
   // Modifier la fonction handleSubmit pour adapter les données au format attendu par l'API
@@ -166,7 +176,7 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
               
               <div>
                 <label htmlFor="capacite" className="block text-sm font-medium text-gray-700">
-                  Capacité
+                  Capacité (occupants)
                 </label>
                 <div className="mt-1 flex rounded-md shadow-sm">
                   <button
@@ -191,6 +201,40 @@ const ChambreModal = ({ isOpen, onClose, chambre, onSave }) => {
                     type="button"
                     className="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-500 hover:bg-gray-100"
                     onClick={() => handleCapaciteChange(1)}
+                  >
+                    <PlusSmIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Nouveau champ pour le nombre de lits */}
+              <div>
+                <label htmlFor="nombreLits" className="block text-sm font-medium text-gray-700">
+                  Nombre de lits
+                </label>
+                <div className="mt-1 flex rounded-md shadow-sm">
+                  <button
+                    type="button"
+                    className="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleNombreLitsChange(-1)}
+                  >
+                    <MinusSmIcon className="h-5 w-5" />
+                  </button>
+                  <input
+                    type="number"
+                    name="nombreLits"
+                    id="nombreLits"
+                    min="1"
+                    max="10"
+                    value={formData.nombreLits}
+                    onChange={handleChange}
+                    className="flex-1 min-w-0 block w-full px-3 py-2 border border-l-0 border-r-0 border-gray-300 text-center sm:text-sm"
+                    readOnly
+                  />
+                  <button
+                    type="button"
+                    className="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-gray-50 text-sm font-medium text-gray-500 hover:bg-gray-100"
+                    onClick={() => handleNombreLitsChange(1)}
                   >
                     <PlusSmIcon className="h-5 w-5" />
                   </button>

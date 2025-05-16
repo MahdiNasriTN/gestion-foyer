@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // Remplacer les icônes de react-icons/bi par les heroicons
 import { UserIcon, HomeIcon } from '@heroicons/react/outline';
 import { fetchChambreOccupants } from '../../services/api';
@@ -6,24 +6,62 @@ import { fetchChambreOccupants } from '../../services/api';
 const ChambreCard = ({ chambre, onAssign, onEdit, onDelete, refreshTrigger }) => {
   const [occupants, setOccupants] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Utiliser une référence pour suivre si les occupants ont déjà été chargés
+  const occupantsLoaded = useRef(false);
+  // Créer une ref pour stocker l'AbortController
+  const abortControllerRef = useRef(null);
 
   // Charger les occupants de la chambre
   useEffect(() => {
+    // Fonction pour charger les occupants
     const loadOccupants = async () => {
+      // Annuler toute requête précédente
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Créer un nouveau AbortController
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
         setIsLoading(true);
-        const response = await fetchChambreOccupants(chambre.id || chambre._id);
-        setOccupants(response?.data || []);
+        const response = await fetchChambreOccupants(
+          chambre.id || chambre._id, 
+          controller.signal // Passer le signal
+        );
+        
+        // Vérifier si la requête n'a pas été annulée avant de mettre à jour l'état
+        if (!controller.signal.aborted) {
+          setOccupants(response?.data || []);
+          occupantsLoaded.current = true;
+        }
       } catch (error) {
-        console.error("Erreur lors du chargement des occupants:", error);
-        setOccupants([]);
+        // Ne rien faire si l'erreur est due à l'annulation
+        if (error.name !== 'AbortError') {
+          console.error("Erreur lors du chargement des occupants:", error);
+          setOccupants([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    loadOccupants();
-  }, [chambre, refreshTrigger]); // Ajout de refreshTrigger pour forcer le rechargement
+    // Charger les occupants seulement si la chambre a un ID et que les données n'ont pas déjà été chargées
+    // ou si refreshTrigger change
+    if ((chambre.id || chambre._id) && (!occupantsLoaded.current || refreshTrigger)) {
+      loadOccupants();
+    }
+
+    // Nettoyage : annuler toute requête en cours lorsque le composant est démonté
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [chambre.id, chambre._id, refreshTrigger]); // Dépendances minimales
 
   // Calculer les indicateurs d'occupation
   const occupancyRate = chambre.capacite ? (occupants.length / chambre.capacite) * 100 : 0;
@@ -58,6 +96,13 @@ const ChambreCard = ({ chambre, onAssign, onEdit, onDelete, refreshTrigger }) =>
           <div className="flex items-center">
             <UserIcon className="mr-1 h-4 w-4 text-gray-400" />
             <span>{chambre.capacite} personne{chambre.capacite > 1 ? 's' : ''}</span>
+          </div>
+          {/* Ajout de l'affichage du nombre de lits */}
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>{chambre.nombreLits} lit{chambre.nombreLits > 1 ? 's' : ''}</span>
           </div>
         </div>
 
@@ -105,7 +150,7 @@ const ChambreCard = ({ chambre, onAssign, onEdit, onDelete, refreshTrigger }) =>
             Modifier
           </button>
           <button
-            onClick={() => onDelete(chambre)}
+            onClick={() => onDelete(chambre)} // Passer la chambre entière au lieu de chambre.id
             className="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100"
           >
             Supprimer

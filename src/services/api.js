@@ -49,7 +49,7 @@ export const login = async (credentials) => {
     // Try a direct request to match Laravel's route configuration
     let response;
     try {
-      response = await API.post('/api/auth/login', credentials);
+      response = await API.post('/api/v1/auth/login', credentials);
       console.log('First attempt succeeded');
       console.log('Login response:', response);
     } catch (apiError) {
@@ -74,7 +74,7 @@ export const login = async (credentials) => {
 
 export const logout = async () => {
   try {
-    await API.post('/api/logout');
+    await API.post('/api/v1/logout');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   } catch (error) {
@@ -119,7 +119,7 @@ export const fetchStagiaires = async (filters = {}) => {
     
     // Construction de l'URL avec les paramètres de requête
     const queryString = queryParams.toString();
-    const url = `/api/stagiaires${queryString ? `?${queryString}` : ''}`;
+    const url = `/api/v1/stagiaires${queryString ? `?${queryString}` : ''}`;
     
     const response = await API.get(url);
     return response;
@@ -131,7 +131,7 @@ export const fetchStagiaires = async (filters = {}) => {
 
 export const fetchStagiaire = async (id) => {
   try {
-    const response = await API.get(`/api/stagiaires/${id}`);
+    const response = await API.get(`/api/v1/stagiaires/${id}`);
     return response.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -140,7 +140,7 @@ export const fetchStagiaire = async (id) => {
 
 export const createStagiaire = async (data) => {
   try {
-    const response = await API.post('/api/stagiaires', data);
+    const response = await API.post('/api/v1/stagiaires', data);
     return response.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -149,7 +149,7 @@ export const createStagiaire = async (data) => {
 
 export const updateStagiaire = async (id, data) => {
   try {
-    const response = await API.put(`/api/stagiaires/${id}`, data);
+    const response = await API.put(`/api/v1/stagiaires/${id}`, data);
     return response.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -158,7 +158,7 @@ export const updateStagiaire = async (id, data) => {
 
 export const deleteStagiaire = async (id) => {
   try {
-    const response = await API.delete(`/api/stagiaires/${id}`);
+    const response = await API.delete(`/api/v1/stagiaires/${id}`);
     return response;
   } catch (error) {
     console.error('Error deleting stagiaire:', error);
@@ -177,7 +177,7 @@ export const createInternStagiaire = async (data) => {
       nom: `${data.firstName} ${data.lastName}`
     };
     
-    const response = await API.post('/api/stagiaires', stagiaireData);
+    const response = await API.post('/api/v1/stagiaires', stagiaireData);
     return response.data;
   } catch (error) {
     console.error('Error creating intern stagiaire:', error);
@@ -195,7 +195,7 @@ export const createExternStagiaire = async (data) => {
       nom: `${data.firstName} ${data.lastName}`
     };
     
-    const response = await API.post('/api/stagiaires', stagiaireData);
+    const response = await API.post('/api/v1/stagiaires', stagiaireData);
     return response.data;
   } catch (error) {
     console.error('Error creating extern stagiaire:', error);
@@ -206,7 +206,7 @@ export const createExternStagiaire = async (data) => {
 // Récupérer un stagiaire par son ID
 export const getStagiaireById = async (id) => {
   try {
-    const response = await API.get(`/api/stagiaires/${id}`);
+    const response = await API.get(`/api/v1/stagiaires/${id}`);
     return response;
   } catch (error) {
     console.error('Error fetching stagiaire by ID:', error);
@@ -217,7 +217,7 @@ export const getStagiaireById = async (id) => {
 // Ajouter cette fonction pour récupérer les stagiaires disponibles pour l'assignation
 export const fetchAvailableStagiaires = async () => {
   try {
-    const response = await API.get('/api/stagiaires?chambreStatus=disponible');
+    const response = await API.get('/api/v1/stagiaires?chambreStatus=disponible');
     return response.data; // Ne pas transformer les données ici
   } catch (error) {
     console.error('Error fetching available stagiaires:', error);
@@ -226,11 +226,19 @@ export const fetchAvailableStagiaires = async () => {
 };
 
 // Ajouter cette fonction pour récupérer les occupants actuels d'une chambre
-export const fetchChambreOccupants = async (chambreId) => {
+export const fetchChambreOccupants = async (chambreId, signal) => {
   try {
-    const response = await API.get(`/api/chambres/${chambreId}/occupants`);
-    return response.data; // Ne pas transformer les données ici
+    const response = await API.get(`/api/v1/chambres/${chambreId}/occupants`, { signal });
+    return response.data;
   } catch (error) {
+    // Vérifier si l'erreur est due à une annulation
+    if (axios.isCancel(error)) {
+      console.log('Requête annulée:', error.message);
+      // Propager l'erreur pour qu'elle soit gérée par le composant
+      const abortError = new Error('Request aborted');
+      abortError.name = 'AbortError';
+      throw abortError;
+    }
     console.error('Error fetching chambre occupants:', error);
     throw error.response?.data || error;
   }
@@ -264,7 +272,7 @@ export const fetchChambres = async (filters = {}) => {
     }
     
     const queryString = queryParams.toString();
-    const url = `/api/chambres${queryString ? `?${queryString}` : ''}`;
+    const url = `/api/v1/chambres${queryString ? `?${queryString}` : ''}`;
     
     const response = await API.get(url);
     return response;
@@ -277,7 +285,7 @@ export const fetchChambres = async (filters = {}) => {
 // Récupérer une chambre par son ID
 export const getChambreById = async (id) => {
   try {
-    const response = await API.get(`/api/chambres/${id}`);
+    const response = await API.get(`/api/v1/chambres/${id}`);
     return response;
   } catch (error) {
     console.error('Error fetching chambre by ID:', error);
@@ -288,7 +296,7 @@ export const getChambreById = async (id) => {
 // Créer une nouvelle chambre
 export const createChambre = async (chambreData) => {
   try {
-    const response = await API.post('/api/chambres', chambreData);
+    const response = await API.post('/api/v1/chambres', chambreData);
     return response;
   } catch (error) {
     console.error('Error creating chambre:', error);
@@ -299,7 +307,7 @@ export const createChambre = async (chambreData) => {
 // Mettre à jour une chambre existante
 export const updateChambre = async (id, chambreData) => {
   try {
-    const response = await API.put(`/api/chambres/${id}`, chambreData);
+    const response = await API.put(`/api/v1/chambres/${id}`, chambreData);
     return response;
   } catch (error) {
     console.error('Error updating chambre:', error);
@@ -310,7 +318,7 @@ export const updateChambre = async (id, chambreData) => {
 // Supprimer une chambre
 export const deleteChambre = async (id) => {
   try {
-    const response = await API.delete(`/api/chambres/${id}`);
+    const response = await API.delete(`/api/v1/chambres/${id}`);
     return response;
   } catch (error) {
     console.error('Error deleting chambre:', error);
@@ -321,7 +329,7 @@ export const deleteChambre = async (id) => {
 // Assigner des occupants à une chambre
 export const assignOccupantsToRoom = async (roomId, occupantIds) => {
   try {
-    const response = await API.post(`/api/chambres/${roomId}/occupants`, { occupantIds });
+    const response = await API.post(`/api/v1/chambres/${roomId}/occupants`, { occupantIds });
     return response.data;
   } catch (error) {
     console.error('Error assigning occupants:', error);

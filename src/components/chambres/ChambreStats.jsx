@@ -30,6 +30,17 @@ const ChambreStats = ({ stats }) => {
             ></div>
           </div>
         </div>
+
+        {/* Ajouter un statistique pour le ratio lits/chambres */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200/40 shadow-inner">
+          <div className="text-xs font-medium text-purple-600/80 mb-1">Lits disponibles</div>
+          <div className="text-2xl font-bold text-purple-900">
+            {stats.totalLits || stats.total * 2} {/* Par défaut, estimer 2 lits par chambre */}
+          </div>
+          <div className="text-xs text-purple-600/60 mt-1">
+            Moyenne de {((stats.totalLits || stats.total * 2) / stats.total).toFixed(1)} lits par chambre
+          </div>
+        </div>
       </div>
       
       {/* Nouvelle section: statistiques par étage */}
