@@ -680,7 +680,7 @@ const Dashboard = () => {
       <div className="mt-12 border-t border-gray-200 pt-6">
         <div className="flex flex-col sm:flex-row justify-between text-sm text-gray-500">
           <div>
-            <p>© 2025 Gestion du Foyer - Version 2.1.0</p>
+            <p>© 2025 Gestion du Foyer - Version 1.0.0</p>
           </div>
           <div className="mt-2 sm:mt-0">
             <button onClick={() => alert('Centre d\'aide en cours de développement')} className="text-primary hover:underline">Centre d'aide</button>

@@ -230,7 +230,7 @@ const DocSidebar = ({
           <div className={`text-xs text-center ${
             colorMode === 'dark' ? 'text-gray-400' : 'text-gray-500'
           }`}></div>
-            Version 2.1.0 • Dernière mise à jour: 15 mai 2025
+            Version 1.0.0 • Dernière mise à jour: 15 mai 2025
           </div>
         </div>
       
