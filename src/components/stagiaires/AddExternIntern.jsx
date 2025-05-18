@@ -102,7 +102,7 @@ const AddExternIntern = ({ onCancel, onSave, initialData = null, isEditing = fal
       // Ajouter les champs sexe et email requis par le modèle MongoDB
       const submissionData = {
         ...formData,
-        sexe: formData.sexe || 'homme', // Valeur par défaut
+        sexe: formData.sexe || 'garcon', // Valeur par défaut
         email: formData.email || `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@example.com`,
         dateArrivee: formData.trainingPeriodFrom,
         dateDepart: formData.trainingPeriodTo,
