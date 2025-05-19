@@ -403,3 +403,27 @@ export const exportStagiaire = async (id, format = 'xlsx') => {
     throw error.response?.data || error;
   }
 };
+
+// Add these functions to your existing API service file
+
+// Update personnel schedule
+export const updatePersonnelSchedule = async (personnelId, scheduleData) => {
+  try {
+    const response = await API.put(`/api/v1/personnel/${personnelId}/schedule`, { schedule: scheduleData });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating personnel schedule:', error);
+    throw error.response?.data || error;
+  }
+};
+
+// Get personnel schedule
+export const getPersonnelSchedule = async (personnelId) => {
+  try {
+    const response = await API.get(`/api/v1/personnel/${personnelId}/schedule`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching personnel schedule:', error);
+    throw error.response?.data || error;
+  }
+};
