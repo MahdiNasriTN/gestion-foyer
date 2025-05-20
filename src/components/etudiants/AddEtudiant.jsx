@@ -151,9 +151,8 @@ const AddEtudiant = ({ onCancel, onSave }) => {
                 className={inputClass}
               >
                 <option value="">Sélectionnez une option</option>
-                <option value="Étudiant">Étudiant</option>
-                <option value="Employé">Employé</option>
-                <option value="Sans emploi">Sans emploi</option>
+                <option value="Célibataire">Célibataire</option>
+                <option value="Marié">Marié</option>
               </select>
             </div>
           </div>
