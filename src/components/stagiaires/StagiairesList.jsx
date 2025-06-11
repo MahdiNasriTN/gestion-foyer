@@ -117,13 +117,29 @@ const StagiairesList = ({
     return count;
   };
 
+  // Replace the getFilterCount function with this improved version:
   const getFilterCount = (filterType) => {
-    // Example logic to get the count of items matching the filter
     return stagiaires.filter((stagiaire) => {
       if (filterType === 'active') return isStagiaireActif(stagiaire);
       if (filterType === 'inactive') return !isStagiaireActif(stagiaire);
-      if (filterType === 'withRoom') return stagiaire.chambre;
-      if (filterType === 'withoutRoom') return !stagiaire.chambre;
+      if (filterType === 'withRoom') {
+        // Check if stagiaire has a room assigned
+        const hasRoom = (stagiaire.chambreInfo && stagiaire.chambreInfo.numero) ||
+                       stagiaire.chambreNumero ||
+                       (stagiaire.chambre && stagiaire.chambre !== '' && 
+                        ((typeof stagiaire.chambre === 'object' && stagiaire.chambre.numero) ||
+                         (typeof stagiaire.chambre === 'string')));
+        return hasRoom;
+      }
+      if (filterType === 'withoutRoom') {
+        // Check if stagiaire does NOT have a room assigned
+        const hasRoom = (stagiaire.chambreInfo && stagiaire.chambreInfo.numero) ||
+                       stagiaire.chambreNumero ||
+                       (stagiaire.chambre && stagiaire.chambre !== '' && 
+                        ((typeof stagiaire.chambre === 'object' && stagiaire.chambre.numero) ||
+                         (typeof stagiaire.chambre === 'string')));
+        return !hasRoom;
+      }
       return false;
     }).length;
   };
@@ -229,7 +245,36 @@ const StagiairesList = ({
                   <BriefcaseIcon className="h-4 w-4 mr-1.5 text-gray-400" />
                   <span>Centre de formation</span>
                 </div>
-                <span className="font-medium text-gray-700 text-sm">{stagiaire.entreprise}</span>
+                <span className="font-medium text-gray-700 text-sm">{stagiaire.entreprise || stagiaire.centerName || stagiaire.assignedCenter || 'N/A'}</span>
+              </div>
+
+              {/* NEW: Session Information in Cards */}
+              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                <div className="text-sm text-gray-700 flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-1.5 text-gray-400" />
+                  <span>Session</span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="font-medium text-gray-700 text-sm">{stagiaire.sessionYear || 'N/A'}</span>
+                  {stagiaire.cycle && stagiaire.cycle !== 'externe' && (
+                    <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      stagiaire.cycle === 'sep' ? 'bg-amber-100 text-amber-800' :
+                      stagiaire.cycle === 'nov' ? 'bg-orange-100 text-orange-800' :
+                      stagiaire.cycle === 'fev' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {stagiaire.cycle === 'sep' ? 'Septembre' :
+                       stagiaire.cycle === 'nov' ? 'Novembre' :
+                       stagiaire.cycle === 'fev' ? 'Février' :
+                       stagiaire.cycle}
+                    </span>
+                  )}
+                  {(stagiaire.type === 'externe' || stagiaire.cycle === 'externe') && (
+                    <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Externe
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-between items-center pb-2 border-b border-gray-100">
@@ -237,7 +282,6 @@ const StagiairesList = ({
                   <OfficeBuildingIcon className="h-4 w-4 mr-1.5 text-gray-400" />
                   <span>Chambre</span>
                 </div>
-                {/* FIXED: Use getDisplayableRoom instead of getDisplayableChambre */}
                 {getDisplayableRoom(stagiaire) !== 'Non assignée' ? (
                   <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-xs font-medium">
                     {getDisplayableRoom(stagiaire)}
@@ -298,20 +342,23 @@ const StagiairesList = ({
     );
   };
 
-  // Update the component to properly handle room display
-  const getDisplayableRoom = (stagiaire) => {
+  // Replace the getDisplayableRoom function with this improved version:
 
-    // Check if the stagiaire has room information from the API
-    if (stagiaire.chambreInfo && stagiaire.chambreNumero) {
+  const getDisplayableRoom = (stagiaire) => {
+    // Check multiple possible room data sources
+    if (stagiaire.chambreInfo && stagiaire.chambreInfo.numero) {
+      return stagiaire.chambreInfo.numero;
+    }
+    
+    if (stagiaire.chambreNumero) {
       return stagiaire.chambreNumero;
     }
     
-    // Fallback to chambre field if it exists
     if (stagiaire.chambre) {
       if (typeof stagiaire.chambre === 'object' && stagiaire.chambre.numero) {
         return stagiaire.chambre.numero;
       }
-      if (typeof stagiaire.chambre === 'string') {
+      if (typeof stagiaire.chambre === 'string' && stagiaire.chambre !== '') {
         return stagiaire.chambre;
       }
     }
