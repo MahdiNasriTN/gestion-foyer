@@ -333,7 +333,7 @@ const GeneralSchedule = () => {
             doc.text(`${filteredPersonnel.length} employé${filteredPersonnel.length > 1 ? 's' : ''} affiché${filteredPersonnel.length > 1 ? 's' : ''}`, 20, 38);
 
             // Prepare table data
-            const tableColumns = ['Personnel', 'Poste', ...DAYS];
+            const tableColumns = ['Personnel', 'Poste', ...DAYS, 'Les remarques']; // Add Arabic Notes column
             const tableRows = [];
 
             filteredPersonnel.forEach(person => {
@@ -350,7 +350,6 @@ const GeneralSchedule = () => {
                         if (shift.isDayOff) {
                             row.push('Congé');
                         } else {
-                            // Use formatTimeRange for PDF export
                             let cellContent = formatTimeRange(shift.startTime, shift.endTime);
                             if (shift.notes) {
                                 cellContent += `\n${shift.notes}`;
@@ -365,6 +364,7 @@ const GeneralSchedule = () => {
                     }
                 });
 
+                row.push(''); // Add empty cell for "الملاحظات"
                 tableRows.push(row);
             });
 
@@ -396,7 +396,8 @@ const GeneralSchedule = () => {
                     5: { cellWidth: 25, halign: 'center' }, // Thursday
                     6: { cellWidth: 25, halign: 'center' }, // Friday
                     7: { cellWidth: 25, halign: 'center' }, // Saturday
-                    8: { cellWidth: 25, halign: 'center' }  // Sunday
+                    8: { cellWidth: 25, halign: 'center' }, // Sunday
+                    9: { cellWidth: 30, halign: 'center' }  // Les remarques
                 },
                 alternateRowStyles: {
                     fillColor: [248, 250, 252] // gray-50
@@ -455,10 +456,11 @@ const GeneralSchedule = () => {
                 // Position page number at bottom left to avoid signature area
                 doc.text(`Page ${i} sur ${pageCount}`, 20, doc.internal.pageSize.height - 10);
                 
-                // NEW: Add generation timestamp at bottom center
+                // NEW: Add generation timestamp and centre name at bottom center
                 doc.setFontSize(8);
                 doc.setTextColor(156, 163, 175); // gray-400 color
                 const timestamp = new Date().toLocaleString('fr-FR');
+                doc.text(`Centre Sectoriel de Formation en Cuir et Chaussures de Sakiet Ezzit`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 18, { align: 'center' });
                 doc.text(`Généré le ${timestamp}`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 10, { align: 'center' });
             }
 
